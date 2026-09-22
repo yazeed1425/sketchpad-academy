@@ -9,13 +9,8 @@ import { useSkillTree, type TreeSkillNode } from "@/lib/hooks/useSkillTree";
 import { useTranslation } from "@/lib/i18n/LocaleProvider";
 
 const NODE_SIZE = 68;
-const ROW_HEIGHT = 104;
-// A repeating left/right offset so the trail winds down the page like a snake, Duolingo-style.
-const OFFSET_CYCLE = [0, 64, 96, 64, 0, -64, -96, -64];
-
-function offsetFor(index: number) {
-  return OFFSET_CYCLE[index % OFFSET_CYCLE.length];
-}
+const COL_WIDTH = 110;
+const ROW_HEIGHT = 130;
 
 export function PathTrail({ pathId, pathTitle }: { pathId: string; pathTitle: string }) {
   const { nodes, isLoading } = useSkillTree(pathId);
@@ -39,15 +34,17 @@ export function PathTrail({ pathId, pathTitle }: { pathId: string; pathTitle: st
 
   const currentMilestone = (ordered.find((s) => s.id === nextUpId) ?? ordered[ordered.length - 1])?.milestone;
 
-  const width = Math.max(...OFFSET_CYCLE.map(Math.abs)) * 2 + NODE_SIZE;
-  const height = ordered.length * ROW_HEIGHT;
-  const centerX = width / 2;
+  const colCount = Math.max(...ordered.map((s) => s.col)) + 1;
+  const tierCount = Math.max(...ordered.map((s) => s.tier)) + 1;
+  const width = colCount * COL_WIDTH;
+  const height = tierCount * ROW_HEIGHT;
 
-  const points = ordered.map((skill, i) => ({
+  const points = ordered.map((skill) => ({
     skill,
-    x: centerX + offsetFor(i),
-    y: i * ROW_HEIGHT + NODE_SIZE / 2,
+    x: skill.col * COL_WIDTH + COL_WIDTH / 2,
+    y: skill.tier * ROW_HEIGHT + NODE_SIZE / 2,
   }));
+  const pointById = new Map(points.map((p) => [p.skill.id, p]));
 
   return (
     <div>
@@ -66,7 +63,7 @@ export function PathTrail({ pathId, pathTitle }: { pathId: string; pathTitle: st
       </div>
 
       <div className="relative mx-auto" style={{ width, height: height + NODE_SIZE / 2 }}>
-        <TrailConnectors points={points} />
+        <TrailConnectors points={points} pointById={pointById} width={width} height={height + NODE_SIZE} />
 
         {points.map(({ skill, x, y }) => {
           const locked = skill.status === "LOCKED";
@@ -141,30 +138,39 @@ export function PathTrail({ pathId, pathTitle }: { pathId: string; pathTitle: st
   );
 }
 
-function TrailConnectors({ points }: { points: { skill: TreeSkillNode; x: number; y: number }[] }) {
-  if (points.length < 2) return null;
-  const width = Math.max(...points.map((p) => p.x)) + NODE_SIZE;
-  const height = points[points.length - 1].y + NODE_SIZE;
-
+function TrailConnectors({
+  points,
+  pointById,
+  width,
+  height,
+}: {
+  points: { skill: TreeSkillNode; x: number; y: number }[];
+  pointById: Map<string, { skill: TreeSkillNode; x: number; y: number }>;
+  width: number;
+  height: number;
+}) {
   return (
     <svg className="absolute inset-0 -z-10" width={width} height={height} aria-hidden>
-      {points.slice(1).map((p, i) => {
-        const prev = points[i];
-        const unlocked = p.skill.status !== "LOCKED";
-        return (
-          <line
-            key={p.skill.id}
-            x1={prev.x}
-            y1={prev.y}
-            x2={p.x}
-            y2={p.y}
-            stroke={unlocked ? "var(--ink)" : "var(--ink-faint)"}
-            strokeWidth={unlocked ? 3 : 2.5}
-            strokeDasharray={unlocked ? undefined : "7 6"}
-            strokeLinecap="round"
-          />
-        );
-      })}
+      {points.flatMap((p) =>
+        p.skill.prerequisiteIds.map((prereqId) => {
+          const prev = pointById.get(prereqId);
+          if (!prev) return null;
+          const unlocked = p.skill.status !== "LOCKED";
+          return (
+            <line
+              key={`${prereqId}-${p.skill.id}`}
+              x1={prev.x}
+              y1={prev.y}
+              x2={p.x}
+              y2={p.y}
+              stroke={unlocked ? "var(--ink)" : "var(--ink-faint)"}
+              strokeWidth={unlocked ? 3 : 2.5}
+              strokeDasharray={unlocked ? undefined : "7 6"}
+              strokeLinecap="round"
+            />
+          );
+        })
+      )}
     </svg>
   );
 }
