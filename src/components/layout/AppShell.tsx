@@ -38,14 +38,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <div className="flex-1 flex" dir="ltr">
       <div className="flex-1 flex flex-col min-w-0 order-1">
         {profile.profile && (
-          <header className="bg-[var(--card-bg)]">
+          <header className="bg-[var(--card-bg)] shadow-[var(--shadow-sm)] relative z-10">
             <div
               dir={locale === "ar" ? "rtl" : "ltr"}
-              className="max-w-5xl mx-auto px-4 py-3 flex flex-wrap items-center gap-4"
+              className="max-w-5xl mx-auto px-4 py-3 flex flex-wrap items-center gap-3"
             >
               <div className="flex items-center gap-2 shrink-0">
                 <div
-                  className="border border-[var(--ink-soft)] rounded-full w-9 h-9 flex items-center justify-center font-display text-sm bg-[var(--info-soft)] text-[var(--info)]"
+                  className="border border-[var(--info)]/30 rounded-full w-9 h-9 flex items-center justify-center font-display text-sm bg-[var(--info-soft)] text-[var(--info)]"
                   title={t("dashboard.level", { level: profile.profile.level })}
                 >
                   {profile.profile.level}
@@ -55,13 +55,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 </div>
               </div>
 
-              <div className="flex items-center gap-1 text-[var(--gold)] shrink-0">
-                <FlameIcon size={20} />
-                <span className="font-display text-lg text-[var(--ink)]">{profile.profile.currentStreak}</span>
+              <div className="flex items-center gap-1.5 text-[var(--gold)] shrink-0 bg-[var(--gold-soft)] rounded-full px-3 py-1.5">
+                <FlameIcon size={18} />
+                <span className="font-display text-sm text-[var(--ink)]">{profile.profile.currentStreak}</span>
               </div>
 
-              <div className="flex flex-col items-start shrink-0">
-                <HeartsRow hearts={profile.profile.hearts} max={profile.profile.heartsMax} size={18} />
+              <div className="flex items-center gap-2 shrink-0 bg-[var(--heart-soft)] rounded-full px-3 py-1.5">
+                <HeartsRow hearts={profile.profile.hearts} max={profile.profile.heartsMax} size={16} />
                 <HeartRegenTimer nextRegenAt={profile.profile.nextRegenAt} hearts={profile.profile.hearts} max={profile.profile.heartsMax} />
               </div>
             </div>
@@ -75,7 +75,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       <aside
         dir={locale === "ar" ? "rtl" : "ltr"}
-        className="order-2 w-16 sm:w-56 shrink-0 border-l border-[var(--ink-faint)] bg-[var(--card-bg)] flex flex-col items-center sm:items-stretch gap-6 p-3 sm:p-4"
+        className="order-2 w-16 sm:w-56 shrink-0 bg-[var(--card-bg)] shadow-[-2px_0_12px_rgba(20,20,40,0.05)] relative z-10 flex flex-col items-center sm:items-stretch gap-6 p-3 sm:p-4"
       >
         <Link href="/dashboard" className="flex items-center gap-2 text-[var(--accent)] justify-center sm:justify-start">
           <CompassIcon size={28} />
@@ -91,10 +91,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 key={item.href}
                 href={item.href}
                 title={t(item.key)}
-                className={`font-display text-base px-3 py-2 rounded-lg flex items-center justify-center sm:justify-start gap-2 border-2 transition-colors ${
+                className={`font-display text-base px-3 py-2 rounded-xl flex items-center justify-center sm:justify-start gap-2.5 transition-colors ${
                   active
-                    ? "border-[var(--ink)] bg-[var(--info-soft)] text-[var(--ink)]"
-                    : "border-transparent text-[var(--ink-soft)] hover:border-[var(--ink)]"
+                    ? "bg-[var(--accent-soft)] text-[var(--accent)]"
+                    : "text-[var(--ink-soft)] hover:bg-[var(--ink-faint)]/10 hover:text-[var(--ink)]"
                 }`}
               >
                 <Icon size={22} />

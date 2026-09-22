@@ -14,14 +14,18 @@
   --gold-soft: #fdf3c7;
   --success: #3c9a5f;
   --success-soft: #dcf3e3;
-  --info: #3b82c4; /* used sparingly: level indicator, in-progress skills, practice hints */
-  --info-soft: #dceaf7;
+  --info: #7c5cd6; /* secondary/status accent: level indicator, in-progress skills, practice hints */
+  --info-soft: #ece6fa;
   --card-bg: #ffffff;
 
   --tier-bronze: #b0692e;
   --tier-silver: #8a8f99;
   --tier-gold: #d1a327;
   --tier-diamond: #4fb6d6;
+
+  --shadow-sm: 0 1px 2px rgba(20, 20, 40, 0.05), 0 1px 1px rgba(20, 20, 40, 0.04);
+  --shadow-md: 0 8px 20px rgba(20, 20, 40, 0.08), 0 2px 6px rgba(20, 20, 40, 0.05);
+  --shadow-lg: 0 16px 32px rgba(20, 20, 40, 0.12), 0 4px 10px rgba(20, 20, 40, 0.06);
 }
 
 @theme inline {
@@ -46,33 +50,33 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --paper: #14130f;
-    --ink: #f2f0e9;
-    --ink-soft: #cfccc1;
-    --ink-faint: #78756a;
-    --line: #f2f0e9;
-    --card-bg: #1e1c17;
-    --accent-soft: #1e3a52;
-    --heart-soft: #3d2323;
-    --gold-soft: #3a3010;
-    --success-soft: #1f3327;
-    --info-soft: #1c2e3d;
+    --paper: #0e1420;
+    --ink: #e8ecf4;
+    --ink-soft: #b8c0d0;
+    --ink-faint: #6b7385;
+    --line: #e8ecf4;
+    --card-bg: #1a2233;
+    --accent-soft: #1c3350;
+    --heart-soft: #3d2530;
+    --gold-soft: #332a10;
+    --success-soft: #16302a;
+    --info-soft: #2a2350;
   }
 }
 
 /* Explicit override from the theme toggle, regardless of the OS/browser preference above. */
 :root[data-theme="dark"] {
-  --paper: #14130f;
-  --ink: #f2f0e9;
-  --ink-soft: #cfccc1;
-  --ink-faint: #78756a;
-  --line: #f2f0e9;
-  --card-bg: #1e1c17;
-  --accent-soft: #1e3a52;
-  --heart-soft: #3d2323;
-  --gold-soft: #3a3010;
-  --success-soft: #1f3327;
-  --info-soft: #1c2e3d;
+  --paper: #0e1420;
+  --ink: #e8ecf4;
+  --ink-soft: #b8c0d0;
+  --ink-faint: #6b7385;
+  --line: #e8ecf4;
+  --card-bg: #1a2233;
+  --accent-soft: #1c3350;
+  --heart-soft: #3d2530;
+  --gold-soft: #332a10;
+  --success-soft: #16302a;
+  --info-soft: #2a2350;
 }
 
 body {

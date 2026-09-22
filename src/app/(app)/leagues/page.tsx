@@ -26,9 +26,12 @@ export default function LeaguesPage() {
 
   return (
     <div className="max-w-xl">
-      <div className="flex items-center gap-2 mb-1">
-        <span style={{ color: TIER_COLOR[league.tier] }}>
-          <StarIcon size={28} />
+      <div className="flex items-center gap-3 mb-1">
+        <span
+          className="w-12 h-12 rounded-full flex items-center justify-center shrink-0"
+          style={{ color: TIER_COLOR[league.tier], backgroundColor: `color-mix(in srgb, ${TIER_COLOR[league.tier]} 16%, transparent)` }}
+        >
+          <StarIcon size={26} />
         </span>
         <h1 className="font-display text-3xl">{t("leagues.title", { tier: tierName })}</h1>
       </div>
@@ -48,8 +51,12 @@ export default function LeaguesPage() {
                 }`}
               >
                 <span
-                  className={`font-display w-7 h-7 rounded-full border border-[var(--ink-soft)] flex items-center justify-center text-sm shrink-0 ${
-                    zone === "promote" ? "bg-[var(--success-soft)]" : zone === "demote" ? "bg-[var(--heart-soft)]" : ""
+                  className={`font-display w-7 h-7 rounded-full border flex items-center justify-center text-sm shrink-0 ${
+                    zone === "promote"
+                      ? "bg-[var(--success-soft)] border-[var(--success)] text-[var(--success)]"
+                      : zone === "demote"
+                        ? "bg-[var(--heart-soft)] border-[var(--heart)] text-[var(--heart)]"
+                        : "border-[var(--ink-soft)]"
                   }`}
                 >
                   {m.rank}

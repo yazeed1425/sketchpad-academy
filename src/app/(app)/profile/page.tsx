@@ -48,7 +48,10 @@ export default function ProfilePage() {
         </h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {earned.map((b) => (
-            <div key={b.id} className="border border-[var(--ink-soft)] rounded-xl p-3 text-center bg-[var(--gold-soft)] animate-pop-in">
+            <div
+              key={b.id}
+              className="border border-[var(--gold)]/30 shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] hover:-translate-y-0.5 transition-all rounded-xl p-3 text-center bg-[var(--gold-soft)] animate-pop-in"
+            >
               <span className="text-[var(--gold)] inline-block mb-1">
                 <SkillIcon icon={b.icon} size={28} />
               </span>
@@ -56,7 +59,7 @@ export default function ProfilePage() {
             </div>
           ))}
           {locked.map((b) => (
-            <div key={b.id} className="border-2 border-dashed border-[var(--ink-faint)] rounded-xl p-3 text-center opacity-60">
+            <div key={b.id} className="border-2 border-dashed border-[var(--ink-faint)]/50 rounded-xl p-3 text-center opacity-60">
               <span className="text-[var(--ink-faint)] inline-block mb-1">
                 <SkillIcon icon={b.icon} size={28} />
               </span>

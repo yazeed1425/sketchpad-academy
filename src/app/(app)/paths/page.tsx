@@ -21,10 +21,12 @@ export default function PathsPage() {
         <div className="grid sm:grid-cols-2 gap-4">
           {paths.map((path) => (
             <Link key={path.id} href={`/paths/${path.id}`}>
-              <Card className="h-full hover:-translate-y-0.5 transition-transform">
+              <Card className="h-full hover:-translate-y-1 hover:shadow-[var(--shadow-md)] transition-all">
                 <div className="flex items-start gap-3">
-                  <span className="text-[var(--accent)] shrink-0">
-                    <SkillIcon icon={path.icon} size={32} />
+                  <span
+                    className={`shrink-0 rounded-xl p-2.5 ${path.enrolled ? "bg-[var(--accent-soft)] text-[var(--accent)]" : "bg-[var(--ink-faint)]/10 text-[var(--ink-soft)]"}`}
+                  >
+                    <SkillIcon icon={path.icon} size={26} />
                   </span>
                   <div>
                     <h2 className="font-display text-xl">{path.title}</h2>

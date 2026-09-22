@@ -5,10 +5,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { RoughButton } from "@/components/ui/RoughButton";
-import { LanguageToggle } from "@/components/ui/LanguageToggle";
-import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { AuthShell } from "@/components/layout/AuthShell";
 import { apiPost, ApiError } from "@/lib/hooks/useApi";
-import { CompassIcon } from "@/components/ui/icons";
 import { useTranslation } from "@/lib/i18n/LocaleProvider";
 
 export default function RegisterPage() {
@@ -36,64 +34,54 @@ export default function RegisterPage() {
   }
 
   return (
-    <main className="flex-1 flex items-center justify-center p-6">
-      <div className="w-full max-w-sm">
-        <div className="flex justify-end gap-2 mb-2">
-          <ThemeToggle />
-          <LanguageToggle />
-        </div>
-        <div className="flex items-center gap-2 justify-center mb-6 text-[var(--accent)]">
-          <CompassIcon size={32} />
-          <h1 className="font-display text-3xl text-[var(--ink)]">{t("app.name")}</h1>
-        </div>
-        <Card>
-          <h2 className="font-display text-2xl mb-4">{t("auth.startNotebook")}</h2>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm text-[var(--ink-soft)] mb-1">{t("auth.name")}</label>
-              <input
-                required
-                minLength={2}
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full border border-[var(--ink-soft)] rounded-lg px-3 py-2 bg-transparent focus:outline-none focus:border-[var(--accent)]"
-              />
-            </div>
-            <div>
-              <label className="block text-sm text-[var(--ink-soft)] mb-1">{t("auth.email")}</label>
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full border border-[var(--ink-soft)] rounded-lg px-3 py-2 bg-transparent focus:outline-none focus:border-[var(--accent)]"
-              />
-            </div>
-            <div>
-              <label className="block text-sm text-[var(--ink-soft)] mb-1">{t("auth.password")}</label>
-              <input
-                type="password"
-                required
-                minLength={8}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full border border-[var(--ink-soft)] rounded-lg px-3 py-2 bg-transparent focus:outline-none focus:border-[var(--accent)]"
-              />
-              <p className="text-xs text-[var(--ink-faint)] mt-1">{t("auth.passwordHint")}</p>
-            </div>
-            {error && <p className="text-sm text-[var(--heart)]">{error}</p>}
-            <RoughButton type="submit" fullWidth disabled={loading}>
-              {loading ? t("auth.creatingAccount") : t("auth.createAccountBtn")}
-            </RoughButton>
-          </form>
-        </Card>
-        <p className="text-center mt-4 text-sm text-[var(--ink-soft)]">
-          {t("auth.alreadyHave")}{" "}
-          <Link href="/login" className="text-[var(--accent)] underline">
-            {t("auth.signIn")}
-          </Link>
-        </p>
-      </div>
-    </main>
+    <AuthShell>
+      <Card>
+        <h2 className="font-display text-2xl mb-4">{t("auth.startNotebook")}</h2>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm text-[var(--ink-soft)] mb-1">{t("auth.name")}</label>
+            <input
+              required
+              minLength={2}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="w-full border border-[var(--ink-soft)] rounded-lg px-3 py-2 bg-transparent focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition-shadow"
+            />
+          </div>
+          <div>
+            <label className="block text-sm text-[var(--ink-soft)] mb-1">{t("auth.email")}</label>
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full border border-[var(--ink-soft)] rounded-lg px-3 py-2 bg-transparent focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition-shadow"
+            />
+          </div>
+          <div>
+            <label className="block text-sm text-[var(--ink-soft)] mb-1">{t("auth.password")}</label>
+            <input
+              type="password"
+              required
+              minLength={8}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full border border-[var(--ink-soft)] rounded-lg px-3 py-2 bg-transparent focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 transition-shadow"
+            />
+            <p className="text-xs text-[var(--ink-faint)] mt-1">{t("auth.passwordHint")}</p>
+          </div>
+          {error && <p className="text-sm text-[var(--heart)]">{error}</p>}
+          <RoughButton type="submit" fullWidth disabled={loading}>
+            {loading ? t("auth.creatingAccount") : t("auth.createAccountBtn")}
+          </RoughButton>
+        </form>
+      </Card>
+      <p className="text-center mt-4 text-sm text-[var(--ink-soft)]">
+        {t("auth.alreadyHave")}{" "}
+        <Link href="/login" className="text-[var(--accent)] underline">
+          {t("auth.signIn")}
+        </Link>
+      </p>
+    </AuthShell>
   );
 }

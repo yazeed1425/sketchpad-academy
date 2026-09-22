@@ -55,21 +55,28 @@ export default function DashboardPage() {
           {quests.length === 0 ? (
             <p className="text-sm text-[var(--ink-soft)]">{t("dashboard.loadingQuests")}</p>
           ) : (
-            <ul className="space-y-3">
+            <ul className="space-y-2">
               {quests.map((q) => (
-                <li key={q.id} className="flex items-center gap-3">
+                <li
+                  key={q.id}
+                  className={`flex items-center gap-3 rounded-xl p-2 transition-colors ${q.completed ? "bg-[var(--success-soft)]/40" : ""}`}
+                >
                   <span
-                    className={`w-7 h-7 rounded-full border border-[var(--ink-soft)] flex items-center justify-center shrink-0 ${
-                      q.completed ? "bg-[var(--success-soft)] text-[var(--success)]" : "bg-transparent"
+                    className={`w-7 h-7 rounded-full border flex items-center justify-center shrink-0 ${
+                      q.completed
+                        ? "bg-[var(--success)] border-[var(--success)] text-white"
+                        : "bg-transparent border-[var(--ink-soft)]"
                     }`}
                   >
-                    {q.completed && <CheckIcon size={16} />}
+                    {q.completed && <CheckIcon size={14} />}
                   </span>
-                  <div className="flex-1">
-                    <p className="text-sm">{q.description}</p>
-                    <XpBar value={q.progress} max={q.target} height={10} fillColor="var(--gold)" />
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-sm ${q.completed ? "text-[var(--ink-soft)] line-through" : ""}`}>{q.description}</p>
+                    {!q.completed && <XpBar value={q.progress} max={q.target} height={8} fillColor="var(--gold)" className="mt-1" />}
                   </div>
-                  <span className="text-xs text-[var(--ink-faint)] shrink-0">{t("quest.xpSuffix", { xp: q.xpReward })}</span>
+                  <span className="text-xs font-display text-[var(--gold)] bg-[var(--gold-soft)] rounded-full px-2 py-0.5 shrink-0">
+                    {t("quest.xpSuffix", { xp: q.xpReward })}
+                  </span>
                 </li>
               ))}
             </ul>
