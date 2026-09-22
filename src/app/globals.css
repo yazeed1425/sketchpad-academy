@@ -107,26 +107,8 @@ html[lang="ar"] .font-display {
   overflow: hidden;
 }
 
-/* Subtle notebook grid so pages read as a page in a sketchbook, not a blank void. */
 .paper-bg {
   background-color: var(--paper);
-  background-image:
-    linear-gradient(rgba(26, 26, 26, 0.06) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(26, 26, 26, 0.06) 1px, transparent 1px);
-  background-size: 28px 28px;
-  background-position: -1px -1px;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .paper-bg {
-    background-image:
-      linear-gradient(rgba(242, 240, 233, 0.06) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(242, 240, 233, 0.06) 1px, transparent 1px);
-  }
-}
-:root[data-theme="dark"] .paper-bg {
-  background-image:
-    linear-gradient(rgba(242, 240, 233, 0.06) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(242, 240, 233, 0.06) 1px, transparent 1px);
 }
 
 .ink-wobble { filter: url(#ink-wobble); }
