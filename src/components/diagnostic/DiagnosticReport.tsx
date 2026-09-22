@@ -14,6 +14,7 @@ export interface DiagnosticSubSkillResult {
   total: number;
   accuracyPct: number;
   mastery: "GAP" | "DEVELOPING" | "MASTERED";
+  rationale: string;
   xpAwarded: number;
   skillUnlockedIds: string[];
 }
@@ -23,6 +24,7 @@ export interface DiagnosticReportData {
   overallAccuracyPct: number;
   quantitativeAccuracyPct: number;
   verbalAccuracyPct: number;
+  overallSummary: string;
   bonusXp: number;
   subSkills: DiagnosticSubSkillResult[];
 }
@@ -61,6 +63,13 @@ export function DiagnosticReport({ report }: { report: DiagnosticReportData }) {
         )}
       </Card>
 
+      {report.overallSummary && (
+        <Card className="bg-[var(--info-soft)]">
+          <p className="text-xs font-display text-[var(--info)] mb-1">{t("diagnostic.report.aiSummary")}</p>
+          <p className="text-sm text-[var(--ink)]">{report.overallSummary}</p>
+        </Card>
+      )}
+
       <div className="space-y-2">
         {report.subSkills.map((s) => {
           const style = MASTERY_STYLE[s.mastery];
@@ -82,6 +91,7 @@ export function DiagnosticReport({ report }: { report: DiagnosticReportData }) {
                   <p className="text-xs text-[var(--ink-soft)] mt-0.5">
                     {t("diagnostic.report.correctOf", { correct: s.correct, total: s.total })} · {s.accuracyPct}%
                   </p>
+                  {s.rationale && <p className="text-xs text-[var(--ink-soft)] mt-1">{s.rationale}</p>}
                   {s.mastery === "MASTERED" && s.xpAwarded > 0 && (
                     <p className="text-xs text-[var(--success)] mt-0.5">{t("diagnostic.report.unlockedNote")}</p>
                   )}

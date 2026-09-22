@@ -1,14 +1,7 @@
 import { db } from "@/lib/db";
-import {
-  SUBSKILL_ORDER,
-  SUBSKILL_SKILL_MAP,
-  TIME_LIMIT_SEC,
-  TOTAL_QUESTIONS,
-  classifyMastery,
-  planStep,
-  type SubSkillTally,
-} from "@/lib/gamification/diagnostic";
+import { SUBSKILL_ORDER, SUBSKILL_SKILL_MAP, TIME_LIMIT_SEC, TOTAL_QUESTIONS, planStep } from "@/lib/gamification/diagnostic";
 import { initializeSkillProgressForEnrollment, recordSkillScore } from "@/lib/services/skillService";
+import { evaluateDiagnosticAttempt, generateDiagnosticQuestion, type DiagnosticTranscriptEntry } from "@/lib/llm/gemini";
 import type { $Enums } from "@/generated/prisma/client";
 
 function normalize(answer: string) {
@@ -30,21 +23,25 @@ export interface DiagnosticProgress {
   total: number;
 }
 
-async function pickQuestion(
+/** Generates a fresh question via Gemini for this step and persists it so it can be graded/referenced later. */
+async function generateAndStoreQuestion(
+  domain: $Enums.DiagnosticDomain,
   subSkill: $Enums.DiagnosticSubSkill,
   difficulty: $Enums.DiagnosticDifficulty,
-  excludeIds: string[]
+  avoidPrompts: string[]
 ) {
-  const candidates = await db.diagnosticQuestion.findMany({
-    where: { subSkill, difficulty, id: { notIn: excludeIds } },
+  const generated = await generateDiagnosticQuestion({ domain, subSkill, difficulty, avoidPrompts });
+  return db.diagnosticQuestion.create({
+    data: {
+      domain,
+      subSkill,
+      difficulty,
+      prompt: generated.prompt,
+      optionsJson: JSON.stringify(generated.options),
+      correctAnswer: generated.correctAnswer,
+      explanation: generated.explanation,
+    },
   });
-  if (candidates.length === 0) {
-    // Fall back to any unused question for the sub-skill if that exact difficulty is exhausted.
-    const fallback = await db.diagnosticQuestion.findMany({ where: { subSkill, id: { notIn: excludeIds } } });
-    if (fallback.length === 0) throw new Error(`No diagnostic questions left for ${subSkill}`);
-    return fallback[Math.floor(Math.random() * fallback.length)];
-  }
-  return candidates[Math.floor(Math.random() * candidates.length)];
 }
 
 function toView(question: { id: string; domain: $Enums.DiagnosticDomain; subSkill: $Enums.DiagnosticSubSkill; difficulty: $Enums.DiagnosticDifficulty; prompt: string; optionsJson: string }): DiagnosticQuestionView {
@@ -74,7 +71,7 @@ export async function startDiagnostic(userId: string) {
 export async function getDiagnosticState(userId: string, attemptId: string) {
   const attempt = await db.diagnosticAttempt.findUniqueOrThrow({
     where: { id: attemptId },
-    include: { responses: { orderBy: { order: "asc" } } },
+    include: { responses: { orderBy: { order: "asc" }, include: { question: true } } },
   });
   if (attempt.userId !== userId) throw new Error("Forbidden");
 
@@ -89,8 +86,8 @@ export async function getDiagnosticState(userId: string, attemptId: string) {
 
   const previous = attempt.responses[attempt.responses.length - 1];
   const step = planStep(stepIndex, previous?.isCorrect ?? null);
-  const usedIds = attempt.responses.map((r) => r.questionId);
-  const question = await pickQuestion(step.subSkill, step.difficulty, usedIds);
+  const avoidPrompts = attempt.responses.filter((r) => r.subSkill === step.subSkill).map((r) => r.question.prompt);
+  const question = await generateAndStoreQuestion(step.domain, step.subSkill, step.difficulty, avoidPrompts);
 
   return {
     status: "in-progress" as const,
@@ -143,6 +140,7 @@ export interface DiagnosticSubSkillResult {
   total: number;
   accuracyPct: number;
   mastery: $Enums.MasteryLevel;
+  rationale: string;
   xpAwarded: number;
   skillUnlockedIds: string[];
 }
@@ -153,31 +151,43 @@ export interface DiagnosticReport {
   overallAccuracyPct: number;
   quantitativeAccuracyPct: number;
   verbalAccuracyPct: number;
+  overallSummary: string;
   bonusXp: number;
   subSkills: DiagnosticSubSkillResult[];
 }
 
-/** Finalizes an attempt: classifies each sub-skill, syncs the real skill tree, and persists the report. */
+/** Finalizes an attempt: has Gemini judge mastery per sub-skill, syncs the real skill tree, and persists the report. */
 export async function completeDiagnostic(userId: string, attemptId: string): Promise<DiagnosticReport> {
   const attempt = await db.diagnosticAttempt.findUniqueOrThrow({
     where: { id: attemptId },
-    include: { responses: true },
+    include: { responses: { orderBy: { order: "asc" }, include: { question: true } } },
   });
   if (attempt.userId !== userId) throw new Error("Forbidden");
   if (attempt.completedAt) return JSON.parse(attempt.reportJson!) as DiagnosticReport;
   if (attempt.responses.length < TOTAL_QUESTIONS) throw new Error("Diagnostic not finished yet");
 
-  const tallies = new Map<$Enums.DiagnosticSubSkill, SubSkillTally>();
-  for (const { domain, subSkill } of SUBSKILL_ORDER) {
-    tallies.set(subSkill, { domain, subSkill, correct: 0, total: 0, reachedHard: false });
+  const transcript: DiagnosticTranscriptEntry[] = attempt.responses.map((r) => ({
+    subSkill: r.subSkill,
+    domain: r.question.domain,
+    difficulty: r.difficulty,
+    prompt: r.question.prompt,
+    userAnswer: r.userAnswer,
+    correctAnswer: r.question.correctAnswer,
+    isCorrect: r.isCorrect,
+  }));
+  const evaluation = await evaluateDiagnosticAttempt(transcript);
+
+  const evaluationBySubSkill = new Map(evaluation.subSkills.map((s) => [s.subSkill, s]));
+  for (const { subSkill } of SUBSKILL_ORDER) {
+    if (!evaluationBySubSkill.has(subSkill)) throw new Error(`Gemini's evaluation is missing sub-skill ${subSkill}`);
   }
-  for (const response of attempt.responses) {
-    const tally = tallies.get(response.subSkill)!;
+
+  const correctBySubSkill = new Map<$Enums.DiagnosticSubSkill, { correct: number; total: number }>();
+  for (const { subSkill } of SUBSKILL_ORDER) correctBySubSkill.set(subSkill, { correct: 0, total: 0 });
+  for (const r of attempt.responses) {
+    const tally = correctBySubSkill.get(r.subSkill)!;
     tally.total += 1;
-    if (response.isCorrect) {
-      tally.correct += 1;
-      if (response.difficulty === "HARD") tally.reachedHard = true;
-    }
+    if (r.isCorrect) tally.correct += 1;
   }
 
   // Ensure the user is enrolled in every path this diagnostic touches, so the tree's
@@ -196,9 +206,10 @@ export async function completeDiagnostic(userId: string, attemptId: string): Pro
   const subSkillResults: DiagnosticSubSkillResult[] = [];
   let bonusXp = 0;
 
-  for (const tally of tallies.values()) {
-    const mastery = classifyMastery(tally);
-    const mapping = SUBSKILL_SKILL_MAP[tally.subSkill];
+  for (const { domain, subSkill } of SUBSKILL_ORDER) {
+    const { mastery, rationale } = evaluationBySubSkill.get(subSkill)!;
+    const { correct, total } = correctBySubSkill.get(subSkill)!;
+    const mapping = SUBSKILL_SKILL_MAP[subSkill];
     const skill = await db.skill.findFirst({ where: { title: mapping.skillTitle, path: { slug: mapping.pathSlug } } });
 
     let xpAwarded = 0;
@@ -212,7 +223,7 @@ export async function completeDiagnostic(userId: string, attemptId: string): Pro
           skillUnlockedIds = result.unlockedSkillIds;
         }
       } else if (mastery === "DEVELOPING") {
-        const accuracyPct = Math.round((tally.correct / tally.total) * 100);
+        const accuracyPct = total > 0 ? Math.round((correct / total) * 100) : 0;
         const existing = await db.userSkillProgress.findUnique({ where: { userId_skillId: { userId, skillId: skill.id } } });
         if (existing?.status !== "COMPLETED") {
           await db.userSkillProgress.upsert({
@@ -228,12 +239,13 @@ export async function completeDiagnostic(userId: string, attemptId: string): Pro
 
     bonusXp += xpAwarded;
     subSkillResults.push({
-      domain: tally.domain,
-      subSkill: tally.subSkill,
-      correct: tally.correct,
-      total: tally.total,
-      accuracyPct: Math.round((tally.correct / tally.total) * 100),
+      domain,
+      subSkill,
+      correct,
+      total,
+      accuracyPct: total > 0 ? Math.round((correct / total) * 100) : 0,
       mastery,
+      rationale,
       xpAwarded,
       skillUnlockedIds,
     });
@@ -251,6 +263,7 @@ export async function completeDiagnostic(userId: string, attemptId: string): Pro
     overallAccuracyPct: Math.round((totalCorrect / TOTAL_QUESTIONS) * 100),
     quantitativeAccuracyPct: pct(quant),
     verbalAccuracyPct: pct(verbal),
+    overallSummary: evaluation.overallSummary,
     bonusXp,
     subSkills: subSkillResults,
   };

@@ -5,7 +5,6 @@ import type { $Enums } from "@/generated/prisma/client";
 type SubSkill = $Enums.DiagnosticSubSkill;
 type Difficulty = $Enums.DiagnosticDifficulty;
 type Domain = $Enums.DiagnosticDomain;
-type Mastery = $Enums.MasteryLevel;
 
 export const QUESTIONS_PER_SUBSKILL = 2;
 export const TIME_LIMIT_SEC = 60;
@@ -53,19 +52,4 @@ export function planStep(stepIndex: number, previousWasCorrect: boolean | null):
     positionInSubSkill === 0 ? "MEDIUM" : previousWasCorrect ? "HARD" : "EASY";
 
   return { stepIndex, domain, subSkill, difficulty };
-}
-
-export interface SubSkillTally {
-  domain: Domain;
-  subSkill: SubSkill;
-  correct: number;
-  total: number;
-  reachedHard: boolean;
-}
-
-export function classifyMastery(tally: SubSkillTally): Mastery {
-  const accuracy = tally.total > 0 ? tally.correct / tally.total : 0;
-  if (tally.reachedHard || accuracy === 1) return "MASTERED";
-  if (accuracy >= 0.5) return "DEVELOPING";
-  return "GAP";
 }
