@@ -87,7 +87,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 title={t(item.key)}
                 className={`font-display text-base px-3 py-2 rounded-lg flex items-center justify-center sm:justify-start gap-2 border-2 transition-colors ${
                   active
-                    ? "border-[var(--ink)] bg-[var(--accent-soft)] text-[var(--ink)]"
+                    ? "border-[var(--ink)] bg-[var(--info-soft)] text-[var(--ink)]"
                     : "border-transparent text-[var(--ink-soft)] hover:border-[var(--ink)]"
                 }`}
               >

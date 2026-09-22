@@ -56,7 +56,6 @@ export function PathTrail({ pathId }: { pathId: string }) {
         {points.map(({ skill, x, y }) => {
           const locked = skill.status === "LOCKED";
           const completed = skill.status === "COMPLETED";
-          const inProgress = skill.status === "IN_PROGRESS";
           const isNextUp = skill.id === nextUpId;
 
           return (
@@ -78,23 +77,13 @@ export function PathTrail({ pathId }: { pathId: string }) {
               <button onClick={() => setSelectedId(skill.id)} aria-label={skill.title}>
                 <RoughPanel
                   rounded={999}
-                  fill={completed ? "var(--success-soft)" : locked ? "var(--card-bg)" : inProgress ? "var(--info-soft)" : "var(--accent-soft)"}
+                  fill={completed ? "var(--success-soft)" : locked ? "var(--card-bg)" : "var(--info-soft)"}
                   fillStyle="solid"
                   strokeWidth={locked ? 1.4 : 2.4}
                   className={`flex items-center justify-center cursor-pointer transition-transform hover:scale-105 ${locked ? "opacity-60" : ""}`}
                   style={{ width: NODE_SIZE, height: NODE_SIZE }}
                 >
-                  <span
-                    className={
-                      completed
-                        ? "text-[var(--success)]"
-                        : locked
-                          ? "text-[var(--ink-faint)]"
-                          : inProgress
-                            ? "text-[var(--info)]"
-                            : "text-[var(--accent)]"
-                    }
-                  >
+                  <span className={completed ? "text-[var(--success)]" : locked ? "text-[var(--ink-faint)]" : "text-[var(--info)]"}>
                     {locked ? <LockIcon size={28} /> : completed ? <CheckIcon size={30} /> : <SkillIcon icon={skill.icon} size={30} />}
                   </span>
                 </RoughPanel>
