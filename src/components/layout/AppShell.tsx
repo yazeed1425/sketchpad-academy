@@ -39,7 +39,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <div className="flex-1 flex flex-col min-w-0 order-1">
         {profile.profile && (
           <header className="bg-[var(--card-bg)]">
-            <div className="max-w-5xl mx-auto px-4 py-3 flex flex-wrap items-center gap-4">
+            <div
+              dir={locale === "ar" ? "rtl" : "ltr"}
+              className="max-w-5xl mx-auto px-4 py-3 flex flex-wrap items-center gap-4"
+            >
               <div className="flex items-center gap-2 shrink-0">
                 <div
                   className="ink-wobble-sm border-2 border-[var(--ink)] rounded-full w-9 h-9 flex items-center justify-center font-display text-sm bg-[var(--info-soft)] text-[var(--info)]"
@@ -70,7 +73,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </main>
       </div>
 
-      <aside className="order-2 w-16 sm:w-56 shrink-0 border-l border-[var(--ink-faint)] bg-[var(--card-bg)] flex flex-col items-center sm:items-stretch gap-6 p-3 sm:p-4">
+      <aside
+        dir={locale === "ar" ? "rtl" : "ltr"}
+        className="order-2 w-16 sm:w-56 shrink-0 border-l border-[var(--ink-faint)] bg-[var(--card-bg)] flex flex-col items-center sm:items-stretch gap-6 p-3 sm:p-4"
+      >
         <Link href="/dashboard" className="flex items-center gap-2 text-[var(--accent)] justify-center sm:justify-start">
           <CompassIcon size={28} />
           <span className="hidden sm:inline font-display text-lg text-[var(--ink)]">{t("app.name")}</span>
