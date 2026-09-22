@@ -45,7 +45,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             >
               <div className="flex items-center gap-2 shrink-0">
                 <div
-                  className="ink-wobble-sm border-2 border-[var(--ink)] rounded-full w-9 h-9 flex items-center justify-center font-display text-sm bg-[var(--info-soft)] text-[var(--info)]"
+                  className="border-2 border-[var(--ink)] rounded-full w-9 h-9 flex items-center justify-center font-display text-sm bg-[var(--info-soft)] text-[var(--info)]"
                   title={t("dashboard.level", { level: profile.profile.level })}
                 >
                   {profile.profile.level}

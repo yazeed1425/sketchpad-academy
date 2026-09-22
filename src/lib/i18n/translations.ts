@@ -5,7 +5,7 @@ export const DEFAULT_LOCALE: Locale = "en";
 
 const en = {
   "app.name": "Sketchpad Academy",
-  "app.tagline": "A hand-drawn, gamified learning platform for high schoolers.",
+  "app.tagline": "A gamified learning platform for high schoolers.",
   "lang.toggle": "العربية",
 
   "nav.dashboard": "Dashboard",
@@ -124,7 +124,7 @@ export type TranslationKey = keyof typeof en;
 
 const ar: Record<TranslationKey, string> = {
   "app.name": "أكاديمية سكيتش باد",
-  "app.tagline": "منصة تعليمية مُحبَّبة برسومات يدوية للمرحلة الثانوية.",
+  "app.tagline": "منصة تعليمية مُحبَّبة للمرحلة الثانوية.",
   "lang.toggle": "English",
 
   "nav.dashboard": "لوحة التحكم",

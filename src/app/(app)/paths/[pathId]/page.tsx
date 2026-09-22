@@ -52,7 +52,7 @@ export default function PathDetailPage({ params }: { params: Promise<{ pathId: s
         <ol className="space-y-3">
           {path.milestones.map((m, i) => (
             <li key={m.id} className="flex gap-3">
-              <span className="ink-wobble-sm w-7 h-7 shrink-0 rounded-full border-2 border-[var(--ink)] flex items-center justify-center font-display text-sm">
+              <span className="w-7 h-7 shrink-0 rounded-full border-2 border-[var(--ink)] flex items-center justify-center font-display text-sm">
                 {i + 1}
               </span>
               <div>

@@ -100,19 +100,9 @@ html[lang="ar"] .font-display {
   letter-spacing: 0;
 }
 
-.sketch-defs {
-  position: absolute;
-  width: 0;
-  height: 0;
-  overflow: hidden;
-}
-
 .paper-bg {
   background-color: var(--paper);
 }
-
-.ink-wobble { filter: url(#ink-wobble); }
-.ink-wobble-sm { filter: url(#ink-wobble-sm); }
 
 @keyframes pop-in {
   0% { transform: scale(0.6); opacity: 0; }

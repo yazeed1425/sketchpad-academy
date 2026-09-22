@@ -12,7 +12,6 @@ export function SketchEdge({ id, sourceX, sourceY, targetX, targetY, sourcePosit
       markerEnd={markerEnd}
       markerStart={markerStart}
       path={path}
-      className="ink-wobble"
       style={{
         stroke: unlocked ? "var(--ink)" : "var(--ink-faint)",
         strokeWidth: unlocked ? 2.4 : 2,

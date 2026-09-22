@@ -26,7 +26,7 @@ const arabicFont = Cairo({
 
 export const metadata: Metadata = {
   title: "Sketchpad Academy",
-  description: "A hand-drawn, gamified learning platform for high schoolers.",
+  description: "A gamified learning platform for high schoolers.",
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
@@ -43,17 +43,6 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       className={`${displayFont.variable} ${bodyFont.variable} ${arabicFont.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col paper-bg">
-        {/* Shared SVG filter that gives borders, icons, and strokes a hand-inked wobble. */}
-        <svg aria-hidden className="sketch-defs">
-          <filter id="ink-wobble" x="-20%" y="-20%" width="140%" height="140%">
-            <feTurbulence type="fractalNoise" baseFrequency="0.012 0.05" numOctaves="2" seed="7" result="noise" />
-            <feDisplacementMap in="SourceGraphic" in2="noise" scale="2.6" xChannelSelector="R" yChannelSelector="G" />
-          </filter>
-          <filter id="ink-wobble-sm" x="-30%" y="-30%" width="160%" height="160%">
-            <feTurbulence type="fractalNoise" baseFrequency="0.06 0.12" numOctaves="2" seed="3" result="noise" />
-            <feDisplacementMap in="SourceGraphic" in2="noise" scale="1.4" xChannelSelector="R" yChannelSelector="G" />
-          </filter>
-        </svg>
         <ThemeProvider initialTheme={theme}>
           <LocaleProvider initialLocale={locale}>{children}</LocaleProvider>
         </ThemeProvider>

@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { RoughPanel } from "@/components/ui/RoughSvg";
 import { Card } from "@/components/ui/Card";
 import { RoughButton } from "@/components/ui/RoughButton";
 import { SkillIcon, LockIcon, CheckIcon, BookIcon } from "@/components/ui/icons";
@@ -52,21 +51,19 @@ export function PathTrail({ pathId, pathTitle }: { pathId: string; pathTitle: st
 
   return (
     <div>
-      <RoughPanel fill="var(--accent)" fillStyle="solid" rounded={18} strokeWidth={2} className="max-w-md mx-auto mb-8">
-        <div className="flex items-center justify-between gap-3 px-4 py-3">
-          <div>
-            <p className="text-xs text-white/80 font-display">{pathTitle}</p>
-            {currentMilestone && <p className="text-lg font-display text-white leading-tight">{currentMilestone.title}</p>}
-          </div>
-          <Link
-            href={`/paths/${pathId}`}
-            className="shrink-0 flex items-center gap-1.5 text-sm font-display text-white border-2 border-white/70 rounded-lg px-2.5 py-1.5 hover:bg-white/10 transition-colors"
-          >
-            <BookIcon size={16} />
-            {t("tree.guide")}
-          </Link>
+      <div className="max-w-md mx-auto mb-8 rounded-2xl bg-[var(--accent)] flex items-center justify-between gap-3 px-4 py-3">
+        <div>
+          <p className="text-xs text-white/80 font-display">{pathTitle}</p>
+          {currentMilestone && <p className="text-lg font-display text-white leading-tight">{currentMilestone.title}</p>}
         </div>
-      </RoughPanel>
+        <Link
+          href={`/paths/${pathId}`}
+          className="shrink-0 flex items-center gap-1.5 text-sm font-display text-white border-2 border-white/70 rounded-lg px-2.5 py-1.5 hover:bg-white/10 transition-colors"
+        >
+          <BookIcon size={16} />
+          {t("tree.guide")}
+        </Link>
+      </div>
 
       <div className="relative mx-auto" style={{ width, height: height + NODE_SIZE / 2 }}>
         <TrailConnectors points={points} />
@@ -84,27 +81,27 @@ export function PathTrail({ pathId, pathTitle }: { pathId: string; pathTitle: st
             >
               {isNextUp && (
                 <div className="absolute -top-11 animate-pop-in">
-                  <RoughPanel fill="var(--ink)" fillStyle="solid" rounded={999} strokeWidth={2}>
-                    <span className="block px-3 py-1 font-display text-sm text-[var(--paper)] whitespace-nowrap">
-                      {t("tree.start")}
-                    </span>
-                  </RoughPanel>
+                  <span className="block rounded-full bg-[var(--ink)] px-3 py-1 font-display text-sm text-[var(--paper)] whitespace-nowrap">
+                    {t("tree.start")}
+                  </span>
                 </div>
               )}
 
-              <button onClick={() => setSelectedId(skill.id)} aria-label={skill.title}>
-                <RoughPanel
-                  circle
-                  fill={completed ? "var(--success-soft)" : locked ? "var(--card-bg)" : "var(--info-soft)"}
-                  fillStyle="solid"
-                  strokeWidth={locked ? 1.4 : 2.4}
-                  className={`flex items-center justify-center cursor-pointer transition-transform hover:scale-105 ${locked ? "opacity-60" : ""}`}
-                  style={{ width: NODE_SIZE, height: NODE_SIZE }}
-                >
-                  <span className={completed ? "text-[var(--success)]" : locked ? "text-[var(--ink-faint)]" : "text-[var(--info)]"}>
-                    {locked ? <LockIcon size={28} /> : completed ? <CheckIcon size={30} /> : <SkillIcon icon={skill.icon} size={30} />}
-                  </span>
-                </RoughPanel>
+              <button
+                onClick={() => setSelectedId(skill.id)}
+                aria-label={skill.title}
+                className={`rounded-full border-2 flex items-center justify-center cursor-pointer transition-transform hover:scale-105 ${
+                  completed
+                    ? "bg-[var(--success-soft)] border-[var(--success)]"
+                    : locked
+                      ? "bg-[var(--card-bg)] border-[var(--ink-faint)] opacity-60"
+                      : "bg-[var(--info-soft)] border-[var(--info)]"
+                }`}
+                style={{ width: NODE_SIZE, height: NODE_SIZE }}
+              >
+                <span className={completed ? "text-[var(--success)]" : locked ? "text-[var(--ink-faint)]" : "text-[var(--info)]"}>
+                  {locked ? <LockIcon size={28} /> : completed ? <CheckIcon size={30} /> : <SkillIcon icon={skill.icon} size={30} />}
+                </span>
               </button>
               <p className="text-xs text-center font-display leading-tight max-w-24">{skill.title}</p>
             </div>
@@ -150,7 +147,7 @@ function TrailConnectors({ points }: { points: { skill: TreeSkillNode; x: number
   const height = points[points.length - 1].y + NODE_SIZE;
 
   return (
-    <svg className="absolute inset-0 -z-10 ink-wobble" width={width} height={height} aria-hidden>
+    <svg className="absolute inset-0 -z-10" width={width} height={height} aria-hidden>
       {points.slice(1).map((p, i) => {
         const prev = points[i];
         const unlocked = p.skill.status !== "LOCKED";
