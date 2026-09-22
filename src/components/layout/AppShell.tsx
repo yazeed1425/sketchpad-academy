@@ -39,10 +39,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <div className="flex-1 flex flex-col min-w-0 order-1">
         {profile.profile && (
           <header className="bg-[var(--card-bg)] shadow-[var(--shadow-sm)] relative z-10">
-            <div
-              dir={locale === "ar" ? "rtl" : "ltr"}
-              className="max-w-5xl mx-auto px-4 py-3 flex flex-wrap items-center gap-3"
-            >
+            <div dir={locale === "ar" ? "rtl" : "ltr"} className="px-6 py-3 flex flex-wrap items-center gap-3">
               <div className="flex items-center gap-2 shrink-0">
                 <div
                   className="border border-[var(--info)]/30 rounded-full w-9 h-9 flex items-center justify-center font-display text-sm bg-[var(--info-soft)] text-[var(--info)]"
@@ -68,7 +65,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </header>
         )}
 
-        <main dir={locale === "ar" ? "rtl" : "ltr"} className="flex-1 max-w-5xl w-full mx-auto px-4 py-6">
+        <main dir={locale === "ar" ? "rtl" : "ltr"} className="flex-1 w-full max-w-[1600px] mx-auto px-6 py-6">
           {children}
         </main>
       </div>

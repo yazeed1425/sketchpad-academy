@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { RoughButton } from "@/components/ui/RoughButton";
@@ -9,10 +9,9 @@ import { useSkillTree, type TreeSkillNode } from "@/lib/hooks/useSkillTree";
 import { useTranslation } from "@/lib/i18n/LocaleProvider";
 import { pathColor } from "@/lib/pathColors";
 
-const NODE_SIZE = 92;
-const COL_WIDTH = 150;
-const ROW_HEIGHT = 170;
 const COLS = 3;
+const MIN_COL_WIDTH = 80;
+const MAX_COL_WIDTH = 260;
 
 /** Boustrophedon layout: row 0 goes right-to-left, row 1 left-to-right, row 2 right-to-left, ... */
 function gridPosition(index: number) {
@@ -26,6 +25,24 @@ export function PathTrail({ pathId, pathTitle }: { pathId: string; pathTitle: st
   const { nodes, isLoading } = useSkillTree(pathId);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const { t } = useTranslation();
+
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(COLS * MIN_COL_WIDTH);
+
+  useEffect(() => {
+    const el = wrapperRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(() => setContainerWidth(el.clientWidth));
+    observer.observe(el);
+    setContainerWidth(el.clientWidth);
+    return () => observer.disconnect();
+  }, []);
+
+  // The 3-column grid grows to fill whatever width it's given (within sane limits)
+  // instead of sitting at a fixed pixel size on wide screens.
+  const colWidth = Math.min(MAX_COL_WIDTH, Math.max(MIN_COL_WIDTH, containerWidth / COLS));
+  const nodeSize = Math.round(colWidth * 0.6);
+  const rowHeight = Math.round(colWidth * 1.13);
 
   const ordered = useMemo(
     () => [...nodes].sort((a, b) => (a.tier - b.tier) || (a.col - b.col)),
@@ -46,23 +63,26 @@ export function PathTrail({ pathId, pathTitle }: { pathId: string; pathTitle: st
   const color = pathColor(pathId);
 
   const rowCount = Math.ceil(ordered.length / COLS);
-  const width = COLS * COL_WIDTH;
-  const height = rowCount * ROW_HEIGHT;
+  const gridWidth = COLS * colWidth;
+  const gridHeight = rowCount * rowHeight;
 
   const points = ordered.map((skill, index) => {
     const { row, col } = gridPosition(index);
     return {
       skill,
-      x: col * COL_WIDTH + COL_WIDTH / 2,
-      y: row * ROW_HEIGHT + NODE_SIZE / 2,
+      x: col * colWidth + colWidth / 2,
+      y: row * rowHeight + nodeSize / 2,
     };
   });
 
   return (
-    <div>
+    <div ref={wrapperRef}>
       <div
-        className="max-w-md mx-auto mb-8 rounded-3xl shadow-[var(--shadow-md)] flex items-center justify-between gap-3 px-4 py-3"
-        style={{ background: `linear-gradient(135deg, ${color.solid}, color-mix(in srgb, ${color.solid} 70%, black))` }}
+        className="mx-auto mb-8 rounded-3xl shadow-[var(--shadow-md)] flex items-center justify-between gap-3 px-4 py-3"
+        style={{
+          background: `linear-gradient(135deg, ${color.solid}, color-mix(in srgb, ${color.solid} 70%, black))`,
+          maxWidth: gridWidth,
+        }}
       >
         <div>
           <p className="text-xs text-white/80 font-display">{pathTitle}</p>
@@ -77,8 +97,8 @@ export function PathTrail({ pathId, pathTitle }: { pathId: string; pathTitle: st
         </Link>
       </div>
 
-      <div className="relative mx-auto" style={{ width, height: height + NODE_SIZE / 2 }}>
-        <TrailConnectors points={points} width={width} height={height + NODE_SIZE} />
+      <div className="relative mx-auto" style={{ width: gridWidth, height: gridHeight + nodeSize / 2 }}>
+        <TrailConnectors points={points} colWidth={colWidth} width={gridWidth} height={gridHeight + nodeSize} />
 
         {points.map(({ skill, x, y }) => {
           const locked = skill.status === "LOCKED";
@@ -89,7 +109,7 @@ export function PathTrail({ pathId, pathTitle }: { pathId: string; pathTitle: st
             <div
               key={skill.id}
               className="absolute flex flex-col items-center gap-1"
-              style={{ left: x - NODE_SIZE / 2, top: y - NODE_SIZE / 2, width: NODE_SIZE }}
+              style={{ left: x - nodeSize / 2, top: y - nodeSize / 2, width: nodeSize }}
             >
               {isNextUp && (
                 <div className="absolute -top-11 animate-pop-in">
@@ -109,20 +129,28 @@ export function PathTrail({ pathId, pathTitle }: { pathId: string; pathTitle: st
                       ? "bg-[var(--card-bg)] border-[var(--ink-faint)] opacity-60"
                       : "bg-[var(--info-soft)] border-[var(--info)]"
                 }`}
-                style={{ width: NODE_SIZE, height: NODE_SIZE }}
+                style={{ width: nodeSize, height: nodeSize }}
               >
                 <span className={completed ? "text-[var(--success)]" : locked ? "text-[var(--ink-faint)]" : "text-[var(--info)]"}>
-                  {locked ? <LockIcon size={38} /> : completed ? <CheckIcon size={40} /> : <SkillIcon icon={skill.icon} size={40} />}
+                  {locked ? (
+                    <LockIcon size={Math.round(nodeSize * 0.41)} />
+                  ) : completed ? (
+                    <CheckIcon size={Math.round(nodeSize * 0.43)} />
+                  ) : (
+                    <SkillIcon icon={skill.icon} size={Math.round(nodeSize * 0.43)} />
+                  )}
                 </span>
               </button>
-              <p className="text-sm text-center font-display leading-tight max-w-28">{skill.title}</p>
+              <p className="text-sm text-center font-display leading-tight" style={{ maxWidth: colWidth - 12 }}>
+                {skill.title}
+              </p>
             </div>
           );
         })}
       </div>
 
       {selected && (
-        <Card className="mt-6 max-w-md mx-auto animate-pop-in">
+        <Card className="mt-6 mx-auto animate-pop-in" style={{ maxWidth: gridWidth }}>
           {selected.milestone && (
             <p className="text-xs uppercase tracking-wide text-[var(--ink-faint)] mb-1">{selected.milestone.title}</p>
           )}
@@ -155,10 +183,12 @@ export function PathTrail({ pathId, pathTitle }: { pathId: string; pathTitle: st
 
 function TrailConnectors({
   points,
+  colWidth,
   width,
   height,
 }: {
   points: { skill: TreeSkillNode; x: number; y: number }[];
+  colWidth: number;
   width: number;
   height: number;
 }) {
@@ -172,7 +202,7 @@ function TrailConnectors({
         return (
           <path
             key={p.skill.id}
-            d={connectorPath(prev, p, width)}
+            d={connectorPath(prev, p, width, colWidth)}
             fill="none"
             stroke={unlocked ? "var(--ink)" : "var(--ink-faint)"}
             strokeWidth={unlocked ? 3 : 2.5}
@@ -191,11 +221,11 @@ function TrailConnectors({
  * right through the label sitting under the row's last node. Curve those specific
  * segments out to whichever side has room instead of using a straight line.
  */
-function connectorPath(prev: { x: number; y: number }, curr: { x: number; y: number }, width: number) {
+function connectorPath(prev: { x: number; y: number }, curr: { x: number; y: number }, width: number, colWidth: number) {
   if (prev.y === curr.y) return `M ${prev.x} ${prev.y} L ${curr.x} ${curr.y}`;
 
   const bulge = prev.x < width / 2 ? 1 : -1;
-  const offset = COL_WIDTH * 0.68 * bulge;
+  const offset = colWidth * 0.68 * bulge;
   const midY1 = prev.y + (curr.y - prev.y) * 0.35;
   const midY2 = prev.y + (curr.y - prev.y) * 0.65;
   return `M ${prev.x} ${prev.y} C ${prev.x + offset} ${midY1}, ${curr.x + offset} ${midY2}, ${curr.x} ${curr.y}`;
