@@ -135,6 +135,46 @@ const mathPath: PathSeed = {
       ],
     },
     {
+      key: "geometry-basics",
+      title: "Geometry Basics",
+      description: "Perimeter, area, and angles of common shapes.",
+      icon: "compass",
+      tier: 0,
+      col: 2,
+      xpReward: 20,
+      prerequisites: [],
+      milestoneTitle: "Foundations",
+      lessons: [
+        {
+          title: "Shapes & Angles",
+          xpReward: 15,
+          questions: [
+            {
+              type: "MULTIPLE_CHOICE",
+              prompt: "What is the sum of the interior angles of a triangle?",
+              options: ["90°", "180°", "270°", "360°"],
+              correctAnswer: "180°",
+              explanation: "Every triangle's interior angles add up to 180°.",
+            },
+            {
+              type: "MULTIPLE_CHOICE",
+              prompt: "What is the area of a rectangle 4cm by 5cm?",
+              options: ["9 cm²", "18 cm²", "20 cm²", "40 cm²"],
+              correctAnswer: "20 cm²",
+              explanation: "Area = length × width = 4 × 5 = 20 cm².",
+            },
+            {
+              type: "TRUE_FALSE",
+              prompt: "A square is always a rectangle.",
+              options: ["True", "False"],
+              correctAnswer: "True",
+              explanation: "A square meets every requirement of a rectangle (four right angles), plus equal sides.",
+            },
+          ],
+        },
+      ],
+    },
+    {
       key: "variables-expressions",
       title: "Variables & Expressions",
       description: "Represent unknowns with letters and simplify expressions.",
@@ -562,6 +602,115 @@ const pythonPath: PathSeed = {
   ],
 };
 
+const verbalPath: PathSeed = {
+  slug: "verbal-reasoning",
+  title: "Verbal Reasoning",
+  description: "Sharpen the analogy, error-spotting, and reading skills the GAT verbal section tests.",
+  icon: "lightbulb",
+  order: 2,
+  milestones: [{ title: "Verbal Foundations", description: "Analogies, contextual errors, and reading comprehension.", order: 0 }],
+  skills: [
+    {
+      key: "analogies",
+      title: "Analogies",
+      description: "Spot the relationship between a pair of words and match it.",
+      icon: "lightbulb",
+      tier: 0,
+      col: 0,
+      xpReward: 20,
+      prerequisites: [],
+      milestoneTitle: "Verbal Foundations",
+      lessons: [
+        {
+          title: "Word Relationships",
+          xpReward: 15,
+          questions: [
+            {
+              type: "MULTIPLE_CHOICE",
+              prompt: "Bird is to Nest as Bee is to ___?",
+              options: ["Hive", "Flower", "Honey", "Wing"],
+              correctAnswer: "Hive",
+              explanation: "A bird lives in a nest the way a bee lives in a hive — same relationship (animal → home).",
+            },
+            {
+              type: "MULTIPLE_CHOICE",
+              prompt: "Pen is to Write as Knife is to ___?",
+              options: ["Cut", "Kitchen", "Sharp", "Metal"],
+              correctAnswer: "Cut",
+              explanation: "A pen's function is to write; a knife's function is to cut — tool → function.",
+            },
+          ],
+        },
+      ],
+    },
+    {
+      key: "contextual-errors",
+      title: "Contextual Errors",
+      description: "Find the word that doesn't fit the meaning of the sentence.",
+      icon: "star",
+      tier: 0,
+      col: 1,
+      xpReward: 20,
+      prerequisites: [],
+      milestoneTitle: "Verbal Foundations",
+      lessons: [
+        {
+          title: "Spot the Error",
+          xpReward: 15,
+          questions: [
+            {
+              type: "MULTIPLE_CHOICE",
+              prompt: "Which word is used incorrectly? \"The freezing desert heat forced them to seek shade.\"",
+              options: ["freezing", "desert", "shade", "forced"],
+              correctAnswer: "freezing",
+              explanation: "\"Freezing\" contradicts \"desert heat\" — the sentence needs a word like \"scorching\" instead.",
+            },
+            {
+              type: "MULTIPLE_CHOICE",
+              prompt: "Which word is used incorrectly? \"She whispered loudly so everyone could hear the secret.\"",
+              options: ["whispered", "loudly", "secret", "hear"],
+              correctAnswer: "whispered",
+              explanation: "Whispering is quiet by definition, which contradicts \"loudly\" and \"so everyone could hear\".",
+            },
+          ],
+        },
+      ],
+    },
+    {
+      key: "reading-comprehension",
+      title: "Reading Comprehension",
+      description: "Read a short passage and answer questions about it.",
+      icon: "badge",
+      tier: 0,
+      col: 2,
+      xpReward: 20,
+      prerequisites: [],
+      milestoneTitle: "Verbal Foundations",
+      lessons: [
+        {
+          title: "Short Passages",
+          xpReward: 15,
+          questions: [
+            {
+              type: "MULTIPLE_CHOICE",
+              prompt:
+                "Passage: \"Coral reefs cover less than 1% of the ocean floor, yet they support roughly a quarter of all marine species.\" What is the main idea?",
+              options: [
+                "Coral reefs are small but ecologically vital",
+                "Most of the ocean floor is covered in coral",
+                "Marine species mostly live outside reefs",
+                "Coral reefs are shrinking every year",
+              ],
+              correctAnswer: "Coral reefs are small but ecologically vital",
+              explanation: "The passage contrasts reefs' tiny footprint with the huge share of species they support.",
+            },
+          ],
+        },
+      ],
+    },
+  ],
+};
+
 const questTemplates = [
   { type: "COMPLETE_LESSONS" as const, description: "Complete {target} lessons today", targetMin: 1, targetMax: 3, xpReward: 30 },
   { type: "EARN_XP" as const, description: "Earn {target} XP today", targetMin: 80, targetMax: 200, xpReward: 40 },
@@ -660,9 +809,159 @@ async function seedPath(path: PathSeed) {
   }
 }
 
+interface DiagnosticQuestionSeed {
+  domain: "QUANTITATIVE" | "VERBAL";
+  subSkill:
+    | "ARITHMETIC"
+    | "ALGEBRA"
+    | "GEOMETRY"
+    | "ANALOGIES"
+    | "CONTEXTUAL_ERRORS"
+    | "READING_COMPREHENSION";
+  difficulty: "EASY" | "MEDIUM" | "HARD";
+  prompt: string;
+  options: string[];
+  correctAnswer: string;
+  explanation: string;
+}
+
+const diagnosticQuestions: DiagnosticQuestionSeed[] = [
+  // Arithmetic
+  {
+    domain: "QUANTITATIVE", subSkill: "ARITHMETIC", difficulty: "EASY",
+    prompt: "What is 12 + 15?", options: ["25", "27", "28", "30"], correctAnswer: "27",
+    explanation: "12 + 15 = 27.",
+  },
+  {
+    domain: "QUANTITATIVE", subSkill: "ARITHMETIC", difficulty: "MEDIUM",
+    prompt: "What is 3/5 of 40?", options: ["16", "20", "24", "28"], correctAnswer: "24",
+    explanation: "3/5 × 40 = 120/5 = 24.",
+  },
+  {
+    domain: "QUANTITATIVE", subSkill: "ARITHMETIC", difficulty: "HARD",
+    prompt: "A price of 80 is increased by 25% then decreased by 20%. What is the final price?", options: ["76", "80", "84", "90"], correctAnswer: "80",
+    explanation: "80 × 1.25 = 100, then 100 × 0.8 = 80 — the two changes exactly cancel out.",
+  },
+  // Algebra
+  {
+    domain: "QUANTITATIVE", subSkill: "ALGEBRA", difficulty: "EASY",
+    prompt: "Solve: x + 7 = 12", options: ["x = 3", "x = 5", "x = 7", "x = 19"], correctAnswer: "x = 5",
+    explanation: "Subtract 7 from both sides: x = 12 - 7 = 5.",
+  },
+  {
+    domain: "QUANTITATIVE", subSkill: "ALGEBRA", difficulty: "MEDIUM",
+    prompt: "Solve: 4x - 3 = 13", options: ["x = 3", "x = 4", "x = 5", "x = 10"], correctAnswer: "x = 4",
+    explanation: "Add 3: 4x = 16. Divide by 4: x = 4.",
+  },
+  {
+    domain: "QUANTITATIVE", subSkill: "ALGEBRA", difficulty: "HARD",
+    prompt: "If 2x + y = 10 and x - y = 2, what is x?", options: ["2", "3", "4", "6"], correctAnswer: "4",
+    explanation: "Add the equations: 3x = 12, so x = 4.",
+  },
+  // Geometry
+  {
+    domain: "QUANTITATIVE", subSkill: "GEOMETRY", difficulty: "EASY",
+    prompt: "How many sides does a hexagon have?", options: ["5", "6", "7", "8"], correctAnswer: "6",
+    explanation: "\"Hexa-\" means six — a hexagon has 6 sides.",
+  },
+  {
+    domain: "QUANTITATIVE", subSkill: "GEOMETRY", difficulty: "MEDIUM",
+    prompt: "What is the area of a circle with radius 3? (use π ≈ 3)", options: ["9", "18", "27", "36"], correctAnswer: "27",
+    explanation: "Area = πr² ≈ 3 × 3² = 3 × 9 = 27.",
+  },
+  {
+    domain: "QUANTITATIVE", subSkill: "GEOMETRY", difficulty: "HARD",
+    prompt: "A right triangle has legs 6 and 8. What is its hypotenuse?", options: ["9", "10", "12", "14"], correctAnswer: "10",
+    explanation: "Pythagorean theorem: √(6² + 8²) = √(36 + 64) = √100 = 10.",
+  },
+  // Analogies
+  {
+    domain: "VERBAL", subSkill: "ANALOGIES", difficulty: "EASY",
+    prompt: "Puppy is to Dog as Kitten is to ___?", options: ["Cat", "Kitten", "Paw", "Meow"], correctAnswer: "Cat",
+    explanation: "A puppy grows into a dog the way a kitten grows into a cat — baby → adult.",
+  },
+  {
+    domain: "VERBAL", subSkill: "ANALOGIES", difficulty: "MEDIUM",
+    prompt: "Author is to Book as Composer is to ___?", options: ["Symphony", "Piano", "Concert", "Orchestra"], correctAnswer: "Symphony",
+    explanation: "An author creates a book; a composer creates a symphony — creator → creation.",
+  },
+  {
+    domain: "VERBAL", subSkill: "ANALOGIES", difficulty: "HARD",
+    prompt: "Frugal is to Wasteful as Timid is to ___?", options: ["Bold", "Shy", "Quiet", "Careful"], correctAnswer: "Bold",
+    explanation: "Frugal and wasteful are opposites; timid and bold are the matching pair of opposites.",
+  },
+  // Contextual errors
+  {
+    domain: "VERBAL", subSkill: "CONTEXTUAL_ERRORS", difficulty: "EASY",
+    prompt: "Which word is used incorrectly? \"The sun set in the morning sky.\"", options: ["sun", "set", "morning", "sky"], correctAnswer: "set",
+    explanation: "The sun \"rises\" in the morning; \"set\" contradicts \"morning\".",
+  },
+  {
+    domain: "VERBAL", subSkill: "CONTEXTUAL_ERRORS", difficulty: "MEDIUM",
+    prompt: "Which word is used incorrectly? \"He was so exhausted that he sprinted energetically to the finish line.\"", options: ["exhausted", "sprinted", "energetically", "finish"], correctAnswer: "energetically",
+    explanation: "\"Energetically\" contradicts \"exhausted\" — someone exhausted would struggle, not sprint energetically.",
+  },
+  {
+    domain: "VERBAL", subSkill: "CONTEXTUAL_ERRORS", difficulty: "HARD",
+    prompt: "Which word is used incorrectly? \"The transparent fog made it impossible to see the road ahead.\"", options: ["transparent", "fog", "impossible", "road"], correctAnswer: "transparent",
+    explanation: "\"Transparent\" (easy to see through) contradicts fog making it \"impossible to see\" — it should be \"thick\" or \"dense\".",
+  },
+  // Reading comprehension
+  {
+    domain: "VERBAL", subSkill: "READING_COMPREHENSION", difficulty: "EASY",
+    prompt: "Passage: \"Bats are the only mammals capable of sustained flight.\" What does this passage state?", options: ["Bats can fly", "Bats are birds", "All mammals can fly", "Bats cannot fly far"], correctAnswer: "Bats can fly",
+    explanation: "The passage directly states bats are capable of sustained flight.",
+  },
+  {
+    domain: "VERBAL", subSkill: "READING_COMPREHENSION", difficulty: "MEDIUM",
+    prompt:
+      "Passage: \"Despite being the smallest planet, Mercury has the most extreme temperature swings in the solar system, since it has almost no atmosphere to trap heat.\" Why does Mercury have extreme temperature swings?",
+    options: [
+      "It has almost no atmosphere to trap heat",
+      "It is the smallest planet",
+      "It is the closest planet to Earth",
+      "It has a very thick atmosphere",
+    ],
+    correctAnswer: "It has almost no atmosphere to trap heat",
+    explanation: "The passage gives the lack of atmosphere as the reason temperatures swing so drastically.",
+  },
+  {
+    domain: "VERBAL", subSkill: "READING_COMPREHENSION", difficulty: "HARD",
+    prompt:
+      "Passage: \"Critics initially dismissed the invention as impractical, yet within a decade it had reshaped how the entire industry operated.\" What can be inferred about the invention?",
+    options: [
+      "It proved far more significant than early critics expected",
+      "It was never adopted by the industry",
+      "Critics were correct that it was impractical",
+      "It took over a century to gain acceptance",
+    ],
+    correctAnswer: "It proved far more significant than early critics expected",
+    explanation: "The contrast (\"yet\") signals the invention's real impact outpaced the critics' dismissal.",
+  },
+];
+
+async function seedDiagnosticQuestions() {
+  await db.diagnosticQuestion.deleteMany();
+  for (const q of diagnosticQuestions) {
+    await db.diagnosticQuestion.create({
+      data: {
+        domain: q.domain,
+        subSkill: q.subSkill,
+        difficulty: q.difficulty,
+        prompt: q.prompt,
+        optionsJson: JSON.stringify(q.options),
+        correctAnswer: q.correctAnswer,
+        explanation: q.explanation,
+      },
+    });
+  }
+}
+
 async function main() {
   await seedPath(mathPath);
   await seedPath(pythonPath);
+  await seedPath(verbalPath);
+  await seedDiagnosticQuestions();
 
   for (const t of questTemplates) {
     const existing = await db.dailyQuestTemplate.findFirst({ where: { type: t.type, description: t.description } });

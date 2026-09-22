@@ -26,15 +26,16 @@ model User {
   role         Role     @default(STUDENT)
   createdAt    DateTime @default(now())
 
-  profile           Profile?
-  skillProgress     UserSkillProgress[]
-  quizAttempts      QuizAttempt[]
-  xpTransactions    XpTransaction[]
-  leagueMemberships LeagueMembership[]
-  dailyQuests       DailyQuest[]
-  badges            UserBadge[]
-  activityDays      ActivityDay[]
-  pathEnrollments   PathEnrollment[]
+  profile            Profile?
+  skillProgress      UserSkillProgress[]
+  quizAttempts       QuizAttempt[]
+  xpTransactions     XpTransaction[]
+  leagueMemberships  LeagueMembership[]
+  dailyQuests        DailyQuest[]
+  badges             UserBadge[]
+  activityDays       ActivityDay[]
+  pathEnrollments    PathEnrollment[]
+  diagnosticAttempts DiagnosticAttempt[]
 }
 
 // Gamification state that changes often — kept separate from User for clarity.
@@ -46,24 +47,24 @@ model Profile {
   level   Int @default(1) // denormalized cache of levelFromTotalXp(totalXp).level, for cheap queries/sorting
   totalXp Int @default(0)
 
-  hearts       Int       @default(5)
-  heartsMax    Int       @default(5)
-  nextRegenAt  DateTime? // timestamp the next heart regenerates at; null when hearts are full
+  hearts      Int       @default(5)
+  heartsMax   Int       @default(5)
+  nextRegenAt DateTime? // timestamp the next heart regenerates at; null when hearts are full
 
-  currentStreak    Int       @default(0)
-  bestStreak       Int       @default(0)
-  lastActiveDate   String? // YYYY-MM-DD, local calendar day of last qualifying activity
+  currentStreak  Int     @default(0)
+  bestStreak     Int     @default(0)
+  lastActiveDate String? // YYYY-MM-DD, local calendar day of last qualifying activity
 
   updatedAt DateTime @updatedAt
 }
 
 // One calendar day of qualifying activity, powers the streak doodle-calendar.
 model ActivityDay {
-  id     String @id @default(cuid())
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  date   String // YYYY-MM-DD
-  xpEarned Int  @default(0)
+  id       String @id @default(cuid())
+  userId   String
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date     String // YYYY-MM-DD
+  xpEarned Int    @default(0)
 
   @@unique([userId, date])
   @@index([userId])
@@ -72,48 +73,48 @@ model ActivityDay {
 // ───────────────────────── Learning content ─────────────────────────
 
 model LearningPath {
-  id          String  @id @default(cuid())
-  slug        String  @unique
+  id          String @id @default(cuid())
+  slug        String @unique
   title       String
   description String
-  icon        String  @default("compass") // maps to a hand-drawn icon component
-  order       Int     @default(0)
+  icon        String @default("compass") // maps to a hand-drawn icon component
+  order       Int    @default(0)
 
-  milestones Milestone[]
-  skills     Skill[]
+  milestones  Milestone[]
+  skills      Skill[]
   enrollments PathEnrollment[]
 }
 
 model PathEnrollment {
-  id         String       @id @default(cuid())
-  userId     String
-  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  pathId     String
-  path       LearningPath @relation(fields: [pathId], references: [id], onDelete: Cascade)
-  startedAt  DateTime     @default(now())
+  id        String       @id @default(cuid())
+  userId    String
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pathId    String
+  path      LearningPath @relation(fields: [pathId], references: [id], onDelete: Cascade)
+  startedAt DateTime     @default(now())
 
   @@unique([userId, pathId])
 }
 
 // A milestone groups a run of skills into a labeled checkpoint shown before the tree.
 model Milestone {
-  id          String @id @default(cuid())
+  id          String       @id @default(cuid())
   pathId      String
   path        LearningPath @relation(fields: [pathId], references: [id], onDelete: Cascade)
   title       String
   description String
-  order       Int    @default(0)
+  order       Int          @default(0)
 
   skills Skill[]
 }
 
 // A node in the skill tree.
 model Skill {
-  id          String   @id @default(cuid())
+  id          String       @id @default(cuid())
   pathId      String
   path        LearningPath @relation(fields: [pathId], references: [id], onDelete: Cascade)
   milestoneId String?
-  milestone   Milestone? @relation(fields: [milestoneId], references: [id])
+  milestone   Milestone?   @relation(fields: [milestoneId], references: [id])
 
   title       String
   description String
@@ -218,14 +219,14 @@ model QuizAttempt {
 }
 
 model QuestionResponse {
-  id          String      @id @default(cuid())
-  attemptId   String
-  attempt     QuizAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
-  questionId  String
-  question    Question    @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  userAnswer  String
-  isCorrect   Boolean
-  answeredAt  DateTime    @default(now())
+  id         String      @id @default(cuid())
+  attemptId  String
+  attempt    QuizAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  questionId String
+  question   Question    @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  userAnswer String
+  isCorrect  Boolean
+  answeredAt DateTime    @default(now())
 }
 
 // ───────────────────────── XP ledger ─────────────────────────
@@ -326,17 +327,17 @@ model DailyQuestTemplate {
 }
 
 model DailyQuest {
-  id             String             @id @default(cuid())
-  userId         String
-  user           User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  templateId     String
-  template       DailyQuestTemplate @relation(fields: [templateId], references: [id])
-  date           String // YYYY-MM-DD this quest was issued for
-  target         Int
-  progress       Int                @default(0)
-  completed      Boolean            @default(false)
-  xpReward       Int
-  claimedAt      DateTime?
+  id         String             @id @default(cuid())
+  userId     String
+  user       User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  templateId String
+  template   DailyQuestTemplate @relation(fields: [templateId], references: [id])
+  date       String // YYYY-MM-DD this quest was issued for
+  target     Int
+  progress   Int                @default(0)
+  completed  Boolean            @default(false)
+  xpReward   Int
+  claimedAt  DateTime?
 
   @@unique([userId, templateId, date])
   @@index([userId, date])
@@ -374,4 +375,84 @@ model UserBadge {
   earnedAt DateTime @default(now())
 
   @@unique([userId, badgeId])
+}
+
+// ───────────────────────── Adaptive diagnostic placement ─────────────────────────
+// A short CAT-style placement test taken before/alongside the regular skill tree.
+// Zero penalty (no hearts) — it only ever reads/writes UserSkillProgress via the
+// same recordSkillScore/initializeSkillProgressForEnrollment path as real lessons.
+
+enum DiagnosticDomain {
+  QUANTITATIVE
+  VERBAL
+}
+
+enum DiagnosticSubSkill {
+  ARITHMETIC
+  ALGEBRA
+  GEOMETRY
+  ANALOGIES
+  CONTEXTUAL_ERRORS
+  READING_COMPREHENSION
+}
+
+enum DiagnosticDifficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum MasteryLevel {
+  GAP
+  DEVELOPING
+  MASTERED
+}
+
+// Question bank for the placement test, tagged by domain/sub-skill/difficulty so the
+// adaptive engine can pull the right next question (kept separate from Question/Lesson
+// since placement questions aren't part of any one lesson).
+model DiagnosticQuestion {
+  id            String               @id @default(cuid())
+  domain        DiagnosticDomain
+  subSkill      DiagnosticSubSkill
+  difficulty    DiagnosticDifficulty
+  prompt        String
+  optionsJson   String // JSON-encoded string[] of choices
+  correctAnswer String
+  explanation   String
+
+  responses DiagnosticResponse[]
+
+  @@index([subSkill, difficulty])
+}
+
+model DiagnosticAttempt {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+  reportJson  String? // serialized DiagnosticReport, written once on completion
+
+  responses DiagnosticResponse[]
+
+  @@index([userId])
+}
+
+model DiagnosticResponse {
+  id           String               @id @default(cuid())
+  attemptId    String
+  attempt      DiagnosticAttempt    @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  questionId   String
+  question     DiagnosticQuestion   @relation(fields: [questionId], references: [id])
+  order        Int // 0-indexed position within the attempt
+  subSkill     DiagnosticSubSkill
+  difficulty   DiagnosticDifficulty
+  userAnswer   String
+  isCorrect    Boolean
+  timeTakenSec Int
+  answeredAt   DateTime             @default(now())
+
+  @@unique([attemptId, order])
+  @@index([attemptId])
 }

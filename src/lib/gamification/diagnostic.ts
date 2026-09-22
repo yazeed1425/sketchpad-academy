@@ -1,0 +1,71 @@
+// Pure CAT (computerized adaptive testing) rules for the placement diagnostic —
+// no DB access here, see services/diagnosticService.ts for orchestration.
+import type { $Enums } from "@/generated/prisma/client";
+
+type SubSkill = $Enums.DiagnosticSubSkill;
+type Difficulty = $Enums.DiagnosticDifficulty;
+type Domain = $Enums.DiagnosticDomain;
+type Mastery = $Enums.MasteryLevel;
+
+export const QUESTIONS_PER_SUBSKILL = 2;
+export const TIME_LIMIT_SEC = 60;
+
+// Alternates Quantitative/Verbal so the test doesn't feel like two back-to-back blocks.
+export const SUBSKILL_ORDER: { domain: Domain; subSkill: SubSkill }[] = [
+  { domain: "QUANTITATIVE", subSkill: "ARITHMETIC" },
+  { domain: "VERBAL", subSkill: "ANALOGIES" },
+  { domain: "QUANTITATIVE", subSkill: "ALGEBRA" },
+  { domain: "VERBAL", subSkill: "CONTEXTUAL_ERRORS" },
+  { domain: "QUANTITATIVE", subSkill: "GEOMETRY" },
+  { domain: "VERBAL", subSkill: "READING_COMPREHENSION" },
+];
+
+export const TOTAL_QUESTIONS = SUBSKILL_ORDER.length * QUESTIONS_PER_SUBSKILL;
+
+/** Maps each sub-skill onto the real skill tree node it should sync progress to. */
+export const SUBSKILL_SKILL_MAP: Record<SubSkill, { pathSlug: string; skillTitle: string }> = {
+  ARITHMETIC: { pathSlug: "math-mastery", skillTitle: "Number Sense" },
+  ALGEBRA: { pathSlug: "math-mastery", skillTitle: "Linear Equations" },
+  GEOMETRY: { pathSlug: "math-mastery", skillTitle: "Geometry Basics" },
+  ANALOGIES: { pathSlug: "verbal-reasoning", skillTitle: "Analogies" },
+  CONTEXTUAL_ERRORS: { pathSlug: "verbal-reasoning", skillTitle: "Contextual Errors" },
+  READING_COMPREHENSION: { pathSlug: "verbal-reasoning", skillTitle: "Reading Comprehension" },
+};
+
+export interface DiagnosticStep {
+  stepIndex: number;
+  domain: Domain;
+  subSkill: SubSkill;
+  difficulty: Difficulty;
+}
+
+/**
+ * Given how many responses have been recorded so far (in order) and the correctness of the
+ * immediately preceding response, determines the domain/sub-skill/difficulty of the next question.
+ * Rule: each sub-skill opens at MEDIUM; a correct answer escalates to HARD, a wrong one drops to EASY.
+ */
+export function planStep(stepIndex: number, previousWasCorrect: boolean | null): DiagnosticStep {
+  const subSkillIndex = Math.floor(stepIndex / QUESTIONS_PER_SUBSKILL);
+  const positionInSubSkill = stepIndex % QUESTIONS_PER_SUBSKILL;
+  const { domain, subSkill } = SUBSKILL_ORDER[subSkillIndex];
+
+  const difficulty: Difficulty =
+    positionInSubSkill === 0 ? "MEDIUM" : previousWasCorrect ? "HARD" : "EASY";
+
+  return { stepIndex, domain, subSkill, difficulty };
+}
+
+export interface SubSkillTally {
+  domain: Domain;
+  subSkill: SubSkill;
+  correct: number;
+  total: number;
+  reachedHard: boolean;
+}
+
+export function classifyMastery(tally: SubSkillTally): Mastery {
+  const accuracy = tally.total > 0 ? tally.correct / tally.total : 0;
+  if (tally.reachedHard || accuracy === 1) return "MASTERED";
+  if (accuracy >= 0.5) return "DEVELOPING";
+  return "GAP";
+}

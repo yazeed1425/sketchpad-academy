@@ -22,12 +22,21 @@ export default function DashboardPage() {
 
   if (!activePath) {
     return (
-      <Card className="max-w-md mx-auto text-center">
-        <p className="text-sm text-[var(--ink-soft)] mb-3">{t("dashboard.noPathYet")}</p>
-        <Link href="/paths" className="text-[var(--accent)] underline">
-          {t("dashboard.pickOne")}
+      <div className="max-w-md mx-auto space-y-4">
+        <Card className="text-center">
+          <p className="text-sm text-[var(--ink-soft)] mb-3">{t("dashboard.noPathYet")}</p>
+          <Link href="/paths" className="text-[var(--accent)] underline">
+            {t("dashboard.pickOne")}
+          </Link>
+        </Card>
+        <Link href="/diagnostic">
+          <Card className="text-center bg-[var(--accent-soft)] hover:-translate-y-0.5 transition-transform">
+            <h2 className="font-display text-lg mb-1">{t("dashboard.takePlacementTitle")}</h2>
+            <p className="text-sm text-[var(--ink-soft)] mb-3">{t("dashboard.takePlacementBody")}</p>
+            <span className="text-[var(--accent)] font-display underline">{t("dashboard.takePlacement")}</span>
+          </Card>
         </Link>
-      </Card>
+      </div>
     );
   }
 

@@ -167,6 +167,25 @@ export function BookIcon({ className = "", size = 20 }: IconProps) {
   );
 }
 
+export function ClockIcon({ className = "", size = 20 }: IconProps) {
+  return (
+    <svg {...base(size)} className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="12" cy="12" r="8.5" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M12 7.5V12l3 2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export function TargetIcon({ className = "", size = 22 }: IconProps) {
+  return (
+    <svg {...base(size)} className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="12" cy="12" r="8.5" stroke="currentColor" strokeWidth="1.5" />
+      <circle cx="12" cy="12" r="4.8" stroke="currentColor" strokeWidth="1.5" />
+      <circle cx="12" cy="12" r="1.2" fill="currentColor" />
+    </svg>
+  );
+}
+
 export function CompassIcon({ className = "", size = 22 }: IconProps) {
   return (
     <svg {...base(size)} className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
