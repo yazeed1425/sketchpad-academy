@@ -32,8 +32,8 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="grid lg:grid-cols-[1fr_300px] gap-6 items-start">
-      <div>
+    <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6 items-start">
+      <div className="min-w-0">
         <PathTrail pathId={activePath.id} pathTitle={activePath.title} />
       </div>
 

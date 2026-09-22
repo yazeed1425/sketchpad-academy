@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { RoughButton } from "@/components/ui/RoughButton";
@@ -10,8 +10,9 @@ import { useTranslation } from "@/lib/i18n/LocaleProvider";
 import { pathColor } from "@/lib/pathColors";
 
 const COLS = 3;
-const MIN_COL_WIDTH = 80;
-const MAX_COL_WIDTH = 260;
+const MIN_COL_WIDTH_MOBILE = 85;
+const MIN_COL_WIDTH_DESKTOP = 170;
+const MAX_COL_WIDTH = 320;
 
 /** Boustrophedon layout: row 0 goes right-to-left, row 1 left-to-right, row 2 right-to-left, ... */
 function gridPosition(index: number) {
@@ -26,21 +27,29 @@ export function PathTrail({ pathId, pathTitle }: { pathId: string; pathTitle: st
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const { t } = useTranslation();
 
-  const wrapperRef = useRef<HTMLDivElement>(null);
-  const [containerWidth, setContainerWidth] = useState(COLS * MIN_COL_WIDTH);
+  // A callback ref (rather than useRef + an empty-deps effect) so this still measures
+  // correctly even though the wrapper div doesn't mount until after the loading/empty
+  // early-returns below resolve on a later render.
+  const [wrapperEl, setWrapperEl] = useState<HTMLDivElement | null>(null);
+  const wrapperRef = useCallback((el: HTMLDivElement | null) => setWrapperEl(el), []);
+  const [containerWidth, setContainerWidth] = useState(COLS * MIN_COL_WIDTH_DESKTOP);
 
   useEffect(() => {
-    const el = wrapperRef.current;
-    if (!el) return;
-    const observer = new ResizeObserver(() => setContainerWidth(el.clientWidth));
-    observer.observe(el);
-    setContainerWidth(el.clientWidth);
+    if (!wrapperEl) return;
+    // ResizeObserver reports the initial size asynchronously right after observe()
+    // starts, so there's no need to also set it synchronously here.
+    const observer = new ResizeObserver(() => setContainerWidth(wrapperEl.clientWidth));
+    observer.observe(wrapperEl);
     return () => observer.disconnect();
-  }, []);
+  }, [wrapperEl]);
 
   // The 3-column grid grows to fill whatever width it's given (within sane limits)
-  // instead of sitting at a fixed pixel size on wide screens.
-  const colWidth = Math.min(MAX_COL_WIDTH, Math.max(MIN_COL_WIDTH, containerWidth / COLS));
+  // instead of sitting at a fixed pixel size on wide screens. Only genuinely narrow
+  // (phone-width) containers fall back to the smaller floor; anything else stays
+  // comfortably large even in a moderate-width desktop window.
+  const isNarrow = containerWidth > 0 && containerWidth < COLS * MIN_COL_WIDTH_DESKTOP;
+  const minColWidth = isNarrow ? MIN_COL_WIDTH_MOBILE : MIN_COL_WIDTH_DESKTOP;
+  const colWidth = Math.min(MAX_COL_WIDTH, Math.max(minColWidth, containerWidth / COLS));
   const nodeSize = Math.round(colWidth * 0.6);
   const rowHeight = Math.round(colWidth * 1.13);
 
@@ -76,7 +85,7 @@ export function PathTrail({ pathId, pathTitle }: { pathId: string; pathTitle: st
   });
 
   return (
-    <div ref={wrapperRef}>
+    <div ref={wrapperRef} className="min-w-0 w-full">
       <div
         className="mx-auto mb-8 rounded-3xl shadow-[var(--shadow-md)] flex items-center justify-between gap-3 px-4 py-3"
         style={{
