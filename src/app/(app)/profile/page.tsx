@@ -48,7 +48,7 @@ export default function ProfilePage() {
         </h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {earned.map((b) => (
-            <div key={b.id} className="border-2 border-[var(--ink)] rounded-xl p-3 text-center bg-[var(--gold-soft)] animate-pop-in">
+            <div key={b.id} className="border border-[var(--ink-soft)] rounded-xl p-3 text-center bg-[var(--gold-soft)] animate-pop-in">
               <span className="text-[var(--gold)] inline-block mb-1">
                 <SkillIcon icon={b.icon} size={28} />
               </span>

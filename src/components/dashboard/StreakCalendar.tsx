@@ -16,7 +16,7 @@ export function StreakCalendar({ days }: { days: StreakCalendarDay[] }) {
               title={day.date}
               className={`w-3.5 h-3.5 rounded-sm border ${
                 day.active
-                  ? "bg-[var(--accent)] border-[var(--ink)]"
+                  ? "bg-[var(--accent)] border-[var(--ink-soft)]"
                   : "bg-transparent border-[var(--ink-faint)]"
               } ${day.isToday ? "ring-2 ring-[var(--gold)]" : ""}`}
             />

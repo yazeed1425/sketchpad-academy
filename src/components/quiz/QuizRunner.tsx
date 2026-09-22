@@ -92,7 +92,7 @@ export function QuizRunner<TCompleteResult>({
           onChange={(e) => setChoice(e.target.value)}
           disabled={!!feedback}
           placeholder={t("lesson.typeAnswer")}
-          className="w-full border-2 border-[var(--ink)] rounded-lg px-3 py-2 bg-transparent mb-4 focus:outline-none focus:border-[var(--accent)]"
+          className="w-full border border-[var(--ink-soft)] rounded-lg px-3 py-2 bg-transparent mb-4 focus:outline-none focus:border-[var(--accent)]"
         />
       ) : (
         <div className="grid gap-2 mb-4">
@@ -112,7 +112,7 @@ export function QuizRunner<TCompleteResult>({
                       ? "border-[var(--heart)] bg-[var(--heart-soft)]"
                       : isChosen
                         ? "border-[var(--accent)] bg-[var(--accent-soft)]"
-                        : "border-[var(--ink)] hover:bg-[var(--accent-soft)]/40"
+                        : "border-[var(--ink-soft)] hover:bg-[var(--accent-soft)]/40"
                 }`}
               >
                 {opt}

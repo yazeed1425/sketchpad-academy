@@ -64,7 +64,7 @@ export function LessonSummary({ result, pathId }: { result: LessonCompleteResult
             {result.newBadges.map((b) => (
               <span
                 key={b.id}
-                className="flex items-center gap-1 text-xs border-2 border-[var(--ink)] rounded-full px-2 py-1 bg-[var(--gold-soft)] animate-pop-in"
+                className="flex items-center gap-1 text-xs border border-[var(--ink-soft)] rounded-full px-2 py-1 bg-[var(--gold-soft)] animate-pop-in"
               >
                 <BadgeIcon size={14} /> {b.title}
               </span>

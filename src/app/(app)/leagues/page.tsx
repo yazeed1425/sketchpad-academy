@@ -48,7 +48,7 @@ export default function LeaguesPage() {
                 }`}
               >
                 <span
-                  className={`font-display w-7 h-7 rounded-full border-2 border-[var(--ink)] flex items-center justify-center text-sm shrink-0 ${
+                  className={`font-display w-7 h-7 rounded-full border border-[var(--ink-soft)] flex items-center justify-center text-sm shrink-0 ${
                     zone === "promote" ? "bg-[var(--success-soft)]" : zone === "demote" ? "bg-[var(--heart-soft)]" : ""
                   }`}
                 >

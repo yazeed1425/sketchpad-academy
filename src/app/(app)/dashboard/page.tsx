@@ -59,7 +59,7 @@ export default function DashboardPage() {
               {quests.map((q) => (
                 <li key={q.id} className="flex items-center gap-3">
                   <span
-                    className={`w-7 h-7 rounded-full border-2 border-[var(--ink)] flex items-center justify-center shrink-0 ${
+                    className={`w-7 h-7 rounded-full border border-[var(--ink-soft)] flex items-center justify-center shrink-0 ${
                       q.completed ? "bg-[var(--success-soft)] text-[var(--success)]" : "bg-transparent"
                     }`}
                   >
