@@ -6,7 +6,7 @@ type SubSkill = $Enums.DiagnosticSubSkill;
 type Difficulty = $Enums.DiagnosticDifficulty;
 type Domain = $Enums.DiagnosticDomain;
 
-export const QUESTIONS_PER_SUBSKILL = 2;
+export const QUESTIONS_PER_SUBSKILL = 5;
 export const TIME_LIMIT_SEC = 60;
 
 // Alternates Quantitative/Verbal so the test doesn't feel like two back-to-back blocks.
@@ -19,6 +19,7 @@ export const SUBSKILL_ORDER: { domain: Domain; subSkill: SubSkill }[] = [
   { domain: "VERBAL", subSkill: "READING_COMPREHENSION" },
 ];
 
+// 6 sub-skills x 5 questions = 30 questions total, covering both GAT sections (quant + verbal).
 export const TOTAL_QUESTIONS = SUBSKILL_ORDER.length * QUESTIONS_PER_SUBSKILL;
 
 export interface DiagnosticStep {
@@ -28,18 +29,27 @@ export interface DiagnosticStep {
   difficulty: Difficulty;
 }
 
+const DIFFICULTY_LADDER: Difficulty[] = ["EASY", "MEDIUM", "HARD"];
+
 /**
- * Given how many responses have been recorded so far (in order) and the correctness of the
- * immediately preceding response, determines the domain/sub-skill/difficulty of the next question.
- * Rule: each sub-skill opens at MEDIUM; a correct answer escalates to HARD, a wrong one drops to EASY.
+ * Given how many responses have been recorded so far (in order) and the difficulty/correctness of
+ * the immediately preceding response, determines the domain/sub-skill/difficulty of the next question.
+ * Rule: each sub-skill opens at MEDIUM; every following question within that sub-skill steps one
+ * level up the EASY/MEDIUM/HARD ladder on a correct answer, or one level down on a wrong one.
  */
-export function planStep(stepIndex: number, previousWasCorrect: boolean | null): DiagnosticStep {
+export function planStep(stepIndex: number, previousDifficulty: Difficulty | null, previousWasCorrect: boolean | null): DiagnosticStep {
   const subSkillIndex = Math.floor(stepIndex / QUESTIONS_PER_SUBSKILL);
   const positionInSubSkill = stepIndex % QUESTIONS_PER_SUBSKILL;
   const { domain, subSkill } = SUBSKILL_ORDER[subSkillIndex];
 
-  const difficulty: Difficulty =
-    positionInSubSkill === 0 ? "MEDIUM" : previousWasCorrect ? "HARD" : "EASY";
+  let difficulty: Difficulty;
+  if (positionInSubSkill === 0 || previousDifficulty === null || previousWasCorrect === null) {
+    difficulty = "MEDIUM";
+  } else {
+    const level = DIFFICULTY_LADDER.indexOf(previousDifficulty);
+    const nextLevel = Math.min(DIFFICULTY_LADDER.length - 1, Math.max(0, level + (previousWasCorrect ? 1 : -1)));
+    difficulty = DIFFICULTY_LADDER[nextLevel];
+  }
 
   return { stepIndex, domain, subSkill, difficulty };
 }

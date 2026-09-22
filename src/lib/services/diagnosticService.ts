@@ -85,7 +85,7 @@ export async function getDiagnosticState(userId: string, attemptId: string) {
   }
 
   const previous = attempt.responses[attempt.responses.length - 1];
-  const step = planStep(stepIndex, previous?.isCorrect ?? null);
+  const step = planStep(stepIndex, previous?.difficulty ?? null, previous?.isCorrect ?? null);
   const avoidPrompts = attempt.responses.filter((r) => r.subSkill === step.subSkill).map((r) => r.question.prompt);
   const question = await generateAndStoreQuestion(step.domain, step.subSkill, step.difficulty, avoidPrompts);
 

@@ -59,6 +59,26 @@ export function PathTrail({ pathId, pathTitle }: { pathId: string; pathTitle: st
     [nodes]
   );
 
+  // Groups skills by milestone, in the order each milestone is first encountered —
+  // since `ordered` is already tier-sorted and every generator (seed data and the
+  // LLM roadmap) assigns each milestone a contiguous tier range, this reproduces the
+  // milestones' real order without needing a separate order field from the API.
+  const milestoneGroups = useMemo(() => {
+    const groups: { milestone: TreeSkillNode["milestone"]; skills: TreeSkillNode[] }[] = [];
+    const indexByKey = new Map<string, number>();
+    for (const skill of ordered) {
+      const key = skill.milestone?.id ?? "__none__";
+      let i = indexByKey.get(key);
+      if (i === undefined) {
+        i = groups.length;
+        indexByKey.set(key, i);
+        groups.push({ milestone: skill.milestone, skills: [] });
+      }
+      groups[i].skills.push(skill);
+    }
+    return groups;
+  }, [ordered]);
+
   const nextUpId = useMemo(
     () => ordered.find((s) => s.status === "UNLOCKED" || s.status === "IN_PROGRESS")?.id ?? null,
     [ordered]
@@ -69,74 +89,84 @@ export function PathTrail({ pathId, pathTitle }: { pathId: string; pathTitle: st
   if (isLoading) return <p>{t("tree.loading")}</p>;
   if (ordered.length === 0) return <p>{t("tree.empty")}</p>;
 
-  const currentMilestone = (ordered.find((s) => s.id === nextUpId) ?? ordered[ordered.length - 1])?.milestone;
   const color = pathColor(pathId);
-
-  const rowCount = Math.ceil(ordered.length / COLS);
   const gridWidth = COLS * colWidth;
-  const gridHeight = rowCount * rowHeight;
-
-  const points = ordered.map((skill, index) => {
-    const { row, col } = gridPosition(index);
-    return {
-      skill,
-      x: col * colWidth + colWidth / 2,
-      y: row * rowHeight + nodeSize / 2,
-    };
-  });
 
   return (
-    <div ref={wrapperRef} className="min-w-0 w-full">
-      <div
-        className="mx-auto mb-8 rounded-[var(--radius-4xl)] shadow-[var(--shadow-md)] flex items-center justify-between gap-3 px-4 py-3"
-        style={{
-          background: `linear-gradient(135deg, ${color.solid}, color-mix(in srgb, ${color.solid} 70%, black))`,
-          maxWidth: gridWidth,
-        }}
-      >
-        <div>
-          <p className="text-xs text-white/80 font-display">{pathTitle}</p>
-          {currentMilestone && <p className="text-lg font-display text-white leading-tight">{currentMilestone.title}</p>}
-        </div>
-        <Link
-          href={`/paths/${pathId}`}
-          className="shrink-0 flex items-center gap-1.5 text-sm font-display text-white border border-white/70 rounded-full px-2.5 py-1.5 hover:bg-white/10 transition-colors"
-        >
-          <BookIcon size={16} />
-          {t("tree.guide")}
-        </Link>
-      </div>
+    <div ref={wrapperRef} className="min-w-0 w-full space-y-10">
+      {milestoneGroups.map((group, groupIndex) => {
+        const rowCount = Math.ceil(group.skills.length / COLS);
+        const gridHeight = rowCount * rowHeight;
+        const points = group.skills.map((skill, index) => {
+          const { row, col } = gridPosition(index);
+          return {
+            skill,
+            x: col * colWidth + colWidth / 2,
+            y: row * rowHeight + nodeSize / 2,
+          };
+        });
 
-      <div className="relative mx-auto" style={{ width: gridWidth, height: gridHeight + nodeSize / 2 }}>
-        <TrailConnectors points={points} colWidth={colWidth} width={gridWidth} height={gridHeight + nodeSize} />
-
-        {points.map(({ skill, x, y }) => {
-          const isNextUp = skill.id === nextUpId;
-
-          return (
+        return (
+          <div key={group.milestone?.id ?? groupIndex}>
             <div
-              key={skill.id}
-              className="absolute flex flex-col items-center gap-1"
-              style={{ left: x - nodeSize / 2, top: y - nodeSize / 2, width: nodeSize }}
+              className="mx-auto mb-8 rounded-[var(--radius-4xl)] shadow-[var(--shadow-md)] flex items-center justify-between gap-3 px-4 py-3"
+              style={{
+                background: `linear-gradient(135deg, ${color.solid}, color-mix(in srgb, ${color.solid} 70%, black))`,
+                maxWidth: gridWidth,
+              }}
             >
-              {isNextUp && (
-                <div className="absolute -top-11 animate-pop-in">
-                  <span className="block rounded-full bg-[var(--ink)] px-3 py-1 font-display text-sm text-[var(--paper)] whitespace-nowrap">
-                    {t("tree.start")}
-                  </span>
-                </div>
+              <div>
+                <p className="text-xs text-white/80 font-display">{pathTitle}</p>
+                {group.milestone && <p className="text-lg font-display text-white leading-tight">{group.milestone.title}</p>}
+              </div>
+              {groupIndex === 0 && (
+                <Link
+                  href={`/paths/${pathId}`}
+                  className="shrink-0 flex items-center gap-1.5 text-sm font-display text-white border border-white/70 rounded-full px-2.5 py-1.5 hover:bg-white/10 transition-colors"
+                >
+                  <BookIcon size={16} />
+                  {t("tree.guide")}
+                </Link>
               )}
-
-              <button onClick={() => setSelectedId(skill.id)} aria-label={skill.title} className="cursor-pointer transition-transform hover:scale-105">
-                <SkillBadge icon={skill.icon} status={skill.status} size={nodeSize} />
-              </button>
-              <p className="text-[11px] text-center font-display leading-tight" style={{ maxWidth: colWidth - 6 }}>
-                {skill.title}
-              </p>
             </div>
-          );
-        })}
-      </div>
+
+            <div className="relative mx-auto" style={{ width: gridWidth, height: gridHeight + nodeSize / 2 }}>
+              <TrailConnectors points={points} colWidth={colWidth} width={gridWidth} height={gridHeight + nodeSize} />
+
+              {points.map(({ skill, x, y }) => {
+                const isNextUp = skill.id === nextUpId;
+
+                return (
+                  <div
+                    key={skill.id}
+                    className="absolute flex flex-col items-center gap-1"
+                    style={{ left: x - nodeSize / 2, top: y - nodeSize / 2, width: nodeSize }}
+                  >
+                    {isNextUp && (
+                      <div className="absolute -top-11 animate-pop-in">
+                        <span className="block rounded-full bg-[var(--ink)] px-3 py-1 font-display text-sm text-[var(--paper)] whitespace-nowrap">
+                          {t("tree.start")}
+                        </span>
+                      </div>
+                    )}
+
+                    <button
+                      onClick={() => setSelectedId(skill.id)}
+                      aria-label={skill.title}
+                      className="cursor-pointer transition-transform hover:scale-105"
+                    >
+                      <SkillBadge icon={skill.icon} status={skill.status} size={nodeSize} />
+                    </button>
+                    <p className="text-[11px] text-center font-display leading-tight" style={{ maxWidth: colWidth - 6 }}>
+                      {skill.title}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
 
       {selected && (
         <Card className="mt-6 mx-auto animate-pop-in" style={{ maxWidth: gridWidth }}>
