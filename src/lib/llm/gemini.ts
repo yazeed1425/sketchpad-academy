@@ -185,6 +185,9 @@ export interface GeneratedRoadmapQuestion {
   explanation: string;
 }
 
+const SKILL_ICON_KEYS = ["books", "bulb", "search", "calculator", "chart"] as const;
+type SkillIconKey = (typeof SKILL_ICON_KEYS)[number];
+
 export interface GeneratedRoadmapSkill {
   key: string;
   title: string;
@@ -194,6 +197,7 @@ export interface GeneratedRoadmapSkill {
   alreadyMastered: boolean;
   prerequisites: string[];
   lessonTitle: string;
+  icon: SkillIconKey;
   questions: GeneratedRoadmapQuestion[];
 }
 
@@ -232,6 +236,7 @@ const ROADMAP_SCHEMA = {
           alreadyMastered: { type: "BOOLEAN" },
           prerequisites: { type: "ARRAY", items: { type: "STRING" } },
           lessonTitle: { type: "STRING" },
+          icon: { type: "STRING", enum: [...SKILL_ICON_KEYS] },
           questions: {
             type: "ARRAY",
             minItems: 2,
@@ -248,7 +253,7 @@ const ROADMAP_SCHEMA = {
             },
           },
         },
-        required: ["key", "title", "description", "milestoneTitle", "tier", "alreadyMastered", "prerequisites", "lessonTitle", "questions"],
+        required: ["key", "title", "description", "milestoneTitle", "tier", "alreadyMastered", "prerequisites", "lessonTitle", "icon", "questions"],
       },
     },
   },
@@ -276,6 +281,7 @@ ${breakdown}
 - من 6 إلى 8 عقد مهارة (skills)، تُعطى الأولوية للمهارات ذات "فجوة مهارية" كنقاط بداية أساسية (tier 0)، ثم مهارات "قيد التطور" لتعزيزها (tier 1)، ثم عقدة أو عقدتان اختياريتان لمهارة متقنة كتثبيت أو تحدٍّ إضافي (tier أعلى).
 - لكل عقدة: key فريد بالإنجليزية (kebab-case)، عنوان ووصف بالعربية، milestoneTitle (اسم مرحلة تجمع عدة عقد متقاربة)، tier (رقم صف يبدأ من 0)، alreadyMastered (true فقط إذا كانت هذه العقدة تمثل مباشرة مهارة صنّفها التقييم كـ"متقن")، وقائمة prerequisites (مفاتيح عقد أخرى في نفس القائمة يجب إتقانها أولاً — عقد tier 0 غالباً بدون متطلبات سابقة).
 - لكل عقدة: درس واحد (lessonTitle) يحتوي على 2-3 أسئلة اختيار من متعدد بالعربية (4 خيارات، خيار صحيح واحد يطابق correctAnswer حرفياً، مع شرح موجز) تدرّب الطالب تحديداً على الفجوة أو نقطة الضعف المحددة في تلك المهارة.
+- لكل عقدة: اختر icon واحداً يناسب موضوعها من هذه القيم فقط: books (قراءة/نصوص/لغة)، bulb (مفاهيم عامة وأفكار)، search (تحليل/اكتشاف/تدقيق)، calculator (حساب/جبر/عمليات رياضية)، chart (مهارة ختامية أو تحدٍّ متقدم مركّب). ملاحظة: العقد المقفلة (تعتمد على متطلبات لم تُتقَن بعد) والعقد المتقنة مسبقاً تُعرض بشارتها الخاصة بغض النظر عن icon، فلا داعي لمراعاة ذلك.
 - أعطِ الخطة عنواناً ووصفاً عاماً بالعربية (title, description)، وقسّمها إلى مراحل (milestones) منطقية.
 أعد النتيجة بصيغة JSON فقط حسب المخطط المطلوب.`;
 
@@ -284,6 +290,7 @@ ${breakdown}
   const validKeys = new Set(roadmap.skills.map((s) => s.key));
   for (const skill of roadmap.skills) {
     skill.prerequisites = skill.prerequisites.filter((k) => validKeys.has(k) && k !== skill.key);
+    if (!SKILL_ICON_KEYS.includes(skill.icon)) skill.icon = "bulb";
     for (const q of skill.questions) {
       if (!q.options.includes(q.correctAnswer)) {
         const trimmedMatch = q.options.find((o) => o.trim() === q.correctAnswer.trim());

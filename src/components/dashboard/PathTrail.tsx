@@ -4,7 +4,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { RoughButton } from "@/components/ui/RoughButton";
-import { SkillIcon, LockIcon, CheckIcon, BookIcon } from "@/components/ui/icons";
+import { BookIcon } from "@/components/ui/icons";
+import { SkillBadge } from "@/components/ui/topicIcons";
 import { useSkillTree, type TreeSkillNode } from "@/lib/hooks/useSkillTree";
 import { useTranslation } from "@/lib/i18n/LocaleProvider";
 import { pathColor } from "@/lib/pathColors";
@@ -110,8 +111,6 @@ export function PathTrail({ pathId, pathTitle }: { pathId: string; pathTitle: st
         <TrailConnectors points={points} colWidth={colWidth} width={gridWidth} height={gridHeight + nodeSize} />
 
         {points.map(({ skill, x, y }) => {
-          const locked = skill.status === "LOCKED";
-          const completed = skill.status === "COMPLETED";
           const isNextUp = skill.id === nextUpId;
 
           return (
@@ -128,27 +127,8 @@ export function PathTrail({ pathId, pathTitle }: { pathId: string; pathTitle: st
                 </div>
               )}
 
-              <button
-                onClick={() => setSelectedId(skill.id)}
-                aria-label={skill.title}
-                className={`rounded-full border-2 flex items-center justify-center cursor-pointer transition-transform hover:scale-105 ${
-                  completed
-                    ? "bg-[var(--success-soft)] border-[var(--success)]"
-                    : locked
-                      ? "bg-[var(--card-bg)] border-[var(--ink-faint)] opacity-60"
-                      : "bg-[var(--info-soft)] border-[var(--info)]"
-                }`}
-                style={{ width: nodeSize, height: nodeSize }}
-              >
-                <span className={completed ? "text-[var(--success)]" : locked ? "text-[var(--ink-faint)]" : "text-[var(--info)]"}>
-                  {locked ? (
-                    <LockIcon size={Math.round(nodeSize * 0.4)} />
-                  ) : completed ? (
-                    <CheckIcon size={Math.round(nodeSize * 0.42)} />
-                  ) : (
-                    <SkillIcon icon={skill.icon} size={Math.round(nodeSize * 0.42)} />
-                  )}
-                </span>
+              <button onClick={() => setSelectedId(skill.id)} aria-label={skill.title} className="cursor-pointer transition-transform hover:scale-105">
+                <SkillBadge icon={skill.icon} status={skill.status} size={nodeSize} />
               </button>
               <p className="text-[11px] text-center font-display leading-tight" style={{ maxWidth: colWidth - 6 }}>
                 {skill.title}
