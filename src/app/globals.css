@@ -1,0 +1,161 @@
+@import "tailwindcss";
+
+:root {
+  --paper: #faf7f0;
+  --ink: #1a1a1a;
+  --ink-soft: #4a4a46;
+  --ink-faint: #9a958a;
+  --line: #1a1a1a;
+  --accent: #ff6b4a; /* XP / primary actions */
+  --accent-soft: #ffe4da;
+  --heart: #e8555a;
+  --heart-soft: #fbdcdc;
+  --gold: #eab308;
+  --gold-soft: #fdf3c7;
+  --success: #3c9a5f;
+  --success-soft: #dcf3e3;
+  --info: #3b82c4; /* used sparingly: level indicator, in-progress skills, practice hints */
+  --info-soft: #dceaf7;
+  --card-bg: #ffffff;
+
+  --tier-bronze: #b0692e;
+  --tier-silver: #8a8f99;
+  --tier-gold: #d1a327;
+  --tier-diamond: #4fb6d6;
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-ink-faint: var(--ink-faint);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-heart: var(--heart);
+  --color-heart-soft: var(--heart-soft);
+  --color-gold: var(--gold);
+  --color-gold-soft: var(--gold-soft);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-card: var(--card-bg);
+  --font-display: var(--font-display);
+  --font-body: var(--font-body);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #14130f;
+    --ink: #f2f0e9;
+    --ink-soft: #cfccc1;
+    --ink-faint: #78756a;
+    --line: #f2f0e9;
+    --card-bg: #1e1c17;
+    --accent-soft: #4a2c22;
+    --heart-soft: #3d2323;
+    --gold-soft: #3a3010;
+    --success-soft: #1f3327;
+    --info-soft: #1c2e3d;
+  }
+}
+
+/* Explicit override from the theme toggle, regardless of the OS/browser preference above. */
+:root[data-theme="dark"] {
+  --paper: #14130f;
+  --ink: #f2f0e9;
+  --ink-soft: #cfccc1;
+  --ink-faint: #78756a;
+  --line: #f2f0e9;
+  --card-bg: #1e1c17;
+  --accent-soft: #4a2c22;
+  --heart-soft: #3d2323;
+  --gold-soft: #3a3010;
+  --success-soft: #1f3327;
+  --info-soft: #1c2e3d;
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body), sans-serif;
+}
+
+h1, h2, h3, h4, .font-display {
+  font-family: var(--font-display), sans-serif;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/* Arabic script isn't covered by Poppins/Inter, so swap in Cairo (also cleaner than a browser fallback). */
+html[lang="ar"] body {
+  font-family: var(--font-arabic), sans-serif;
+}
+html[lang="ar"] h1,
+html[lang="ar"] h2,
+html[lang="ar"] h3,
+html[lang="ar"] h4,
+html[lang="ar"] .font-display {
+  font-family: var(--font-arabic), sans-serif;
+  letter-spacing: 0;
+}
+
+.sketch-defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+/* Subtle notebook grid so pages read as a page in a sketchbook, not a blank void. */
+.paper-bg {
+  background-color: var(--paper);
+  background-image:
+    linear-gradient(rgba(26, 26, 26, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(26, 26, 26, 0.06) 1px, transparent 1px);
+  background-size: 28px 28px;
+  background-position: -1px -1px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .paper-bg {
+    background-image:
+      linear-gradient(rgba(242, 240, 233, 0.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(242, 240, 233, 0.06) 1px, transparent 1px);
+  }
+}
+:root[data-theme="dark"] .paper-bg {
+  background-image:
+    linear-gradient(rgba(242, 240, 233, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(242, 240, 233, 0.06) 1px, transparent 1px);
+}
+
+.ink-wobble { filter: url(#ink-wobble); }
+.ink-wobble-sm { filter: url(#ink-wobble-sm); }
+
+@keyframes pop-in {
+  0% { transform: scale(0.6); opacity: 0; }
+  60% { transform: scale(1.08); opacity: 1; }
+  100% { transform: scale(1); }
+}
+.animate-pop-in { animation: pop-in 0.35s cubic-bezier(.34,1.56,.64,1) both; }
+
+@keyframes wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-3deg); }
+  75% { transform: rotate(3deg); }
+}
+.animate-wiggle { animation: wiggle 0.4s ease-in-out; }
+
+@keyframes shake-x {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+.animate-shake { animation: shake-x 0.4s ease-in-out; }
+
+@keyframes draw-in {
+  from { stroke-dashoffset: var(--dash, 400); }
+  to { stroke-dashoffset: 0; }
+}

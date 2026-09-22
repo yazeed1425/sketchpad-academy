@@ -1,0 +1,197 @@
+"use client";
+
+// Hand-drawn ink icon set. Simple stroke-based SVGs run through the shared
+// `ink-wobble-sm` filter (see globals.css) so every icon reads as sketched,
+// not vector-perfect.
+
+export interface IconProps {
+  className?: string;
+  size?: number;
+  filled?: boolean;
+}
+
+function base(size: number) {
+  return { width: size, height: size, viewBox: "0 0 24 24" };
+}
+
+export function HeartIcon({ className = "", size = 22, filled = true }: IconProps) {
+  return (
+    <svg {...base(size)} className={`ink-wobble-sm ${className}`} fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path
+        d="M12 20.2c-.3 0-.6-.1-.8-.3-2-1.8-3.9-3.5-5.3-5.2C4.2 12.9 3 11 3 8.8 3 6.2 5 4.2 7.5 4.2c1.5 0 2.9.8 3.7 2 .2.3.7.3.9 0 .8-1.2 2.2-2 3.7-2C18.3 4.2 21 6.2 21 8.8c0 2.2-1.2 4.1-2.9 5.9-1.4 1.7-3.3 3.4-5.3 5.2-.2.2-.5.3-.8.3Z"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+        fill={filled ? "currentColor" : "none"}
+        fillOpacity={filled ? 0.12 : 0}
+      />
+    </svg>
+  );
+}
+
+export function HeartBrokenIcon({ className = "", size = 22 }: IconProps) {
+  return (
+    <svg {...base(size)} className={`ink-wobble-sm ${className}`} fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path
+        d="M12 20.2c-.3 0-.6-.1-.8-.3-2-1.8-3.9-3.5-5.3-5.2C4.2 12.9 3 11 3 8.8 3 6.2 5 4.2 7.5 4.2c1.5 0 2.9.8 3.7 2 .2.3.7.3.9 0 .8-1.2 2.2-2 3.7-2C18.3 4.2 21 6.2 21 8.8c0 2.2-1.2 4.1-2.9 5.9-1.4 1.7-3.3 3.4-5.3 5.2-.2.2-.5.3-.8.3Z"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeDasharray="2.5 2.5"
+        strokeLinejoin="round"
+        opacity={0.55}
+      />
+    </svg>
+  );
+}
+
+export function LightbulbIcon({ className = "", size = 22 }: IconProps) {
+  return (
+    <svg {...base(size)} className={`ink-wobble-sm ${className}`} fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path
+        d="M9 18h6M9.5 21h5M12 3a6.5 6.5 0 0 0-3.8 11.8c.5.4.8 1 .8 1.7v.3h6v-.3c0-.7.3-1.3.8-1.7A6.5 6.5 0 0 0 12 3Z"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+export function LockIcon({ className = "", size = 22 }: IconProps) {
+  return (
+    <svg {...base(size)} className={`ink-wobble-sm ${className}`} fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="5.5" y="10.5" width="13" height="9.5" rx="1.5" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M8 10.5V7.8a4 4 0 1 1 8 0v2.7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <circle cx="12" cy="15" r="1.3" fill="currentColor" />
+    </svg>
+  );
+}
+
+export function ThumbUpIcon({ className = "", size = 22 }: IconProps) {
+  return (
+    <svg {...base(size)} className={`ink-wobble-sm ${className}`} fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path
+        d="M7 11v9H4.5A1.5 1.5 0 0 1 3 18.5V12.5A1.5 1.5 0 0 1 4.5 11H7Zm0 0 3.6-6.4c.3-.6.9-.9 1.6-.8.9.2 1.5 1 1.4 1.9l-.6 4.3H18a2 2 0 0 1 2 2.3l-1.1 6.5a2 2 0 0 1-2 1.7H10a3 3 0 0 1-3-3V11Z"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+export function StarIcon({ className = "", size = 22, filled = true }: IconProps) {
+  return (
+    <svg {...base(size)} className={`ink-wobble-sm ${className}`} fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path
+        d="m12 3.5 2.5 5.4 5.8.7-4.3 4 1.2 5.8L12 16.6l-5.2 2.8 1.2-5.8-4.3-4 5.8-.7L12 3.5Z"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+        fill={filled ? "currentColor" : "none"}
+        fillOpacity={filled ? 0.18 : 0}
+      />
+    </svg>
+  );
+}
+
+export function BadgeIcon({ className = "", size = 22 }: IconProps) {
+  return (
+    <svg {...base(size)} className={`ink-wobble-sm ${className}`} fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path
+        d="m12 2.5 2.1 1.6 2.6-.4 1 2.4 2.3 1.2-.4 2.6 1.6 2.1-1.6 2.1.4 2.6-2.3 1.2-1 2.4-2.6-.4L12 21.5l-2.1-1.6-2.6.4-1-2.4-2.3-1.2.4-2.6L2.8 12l1.6-2.1-.4-2.6 2.3-1.2 1-2.4 2.6.4L12 2.5Z"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinejoin="round"
+      />
+      <circle cx="12" cy="12" r="3.3" stroke="currentColor" strokeWidth="1.4" />
+    </svg>
+  );
+}
+
+export function FlameIcon({ className = "", size = 22 }: IconProps) {
+  return (
+    <svg {...base(size)} className={`ink-wobble-sm ${className}`} fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path
+        d="M12 21.5c-4 0-6.5-2.6-6.5-6 0-2.5 1.4-4 2.4-5.6.3-.5 1-.4 1.1.2.2 1 .7 1.9 1.3 2.3-.2-2.8.7-5.8 3-7.9.4-.4 1-.1 1 .4-.1 1.7.3 3 1.2 4.2 1.2 1.6 2.5 3.3 2.5 6.4 0 3.4-2.5 6-6 6Z"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+        fill="currentColor"
+        fillOpacity={0.15}
+      />
+    </svg>
+  );
+}
+
+export function SunIcon({ className = "", size = 20 }: IconProps) {
+  return (
+    <svg {...base(size)} className={`ink-wobble-sm ${className}`} fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="12" cy="12" r="4.3" stroke="currentColor" strokeWidth="1.6" />
+      <path
+        d="M12 2.8v2.4M12 18.8v2.4M4.6 4.6l1.7 1.7M17.7 17.7l1.7 1.7M2.8 12h2.4M18.8 12h2.4M4.6 19.4l1.7-1.7M17.7 6.3l1.7-1.7"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+export function MoonIcon({ className = "", size = 20 }: IconProps) {
+  return (
+    <svg {...base(size)} className={`ink-wobble-sm ${className}`} fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path
+        d="M20 14.2A8.5 8.5 0 1 1 9.8 4a6.7 6.7 0 0 0 10.2 10.2Z"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+        fill="currentColor"
+        fillOpacity={0.12}
+      />
+    </svg>
+  );
+}
+
+export function CompassIcon({ className = "", size = 22 }: IconProps) {
+  return (
+    <svg {...base(size)} className={`ink-wobble-sm ${className}`} fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="12" cy="12" r="8.5" stroke="currentColor" strokeWidth="1.5" />
+      <path d="m14.5 9.5-1.7 5-5 1.7 1.7-5 5-1.7Z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export function CheckIcon({ className = "", size = 26 }: IconProps) {
+  return (
+    <svg {...base(size)} className={`ink-wobble-sm ${className}`} fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M4.5 12.8 9 17.5l10.5-11" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export function CrossIcon({ className = "", size = 26 }: IconProps) {
+  return (
+    <svg {...base(size)} className={`ink-wobble-sm ${className}`} fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M6 6.5 18 18M18 6.5 6 18" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+const ICONS: Record<string, (props: IconProps) => React.ReactElement> = {
+  heart: HeartIcon,
+  lightbulb: LightbulbIcon,
+  lock: LockIcon,
+  thumb: ThumbUpIcon,
+  star: StarIcon,
+  badge: BadgeIcon,
+  flame: FlameIcon,
+  compass: CompassIcon,
+};
+
+export function SkillIcon({ icon, ...props }: IconProps & { icon: string }) {
+  const Cmp = ICONS[icon] ?? LightbulbIcon;
+  return <Cmp {...props} />;
+}

@@ -1,0 +1,377 @@
+// Prisma schema for the ink-doodle gamified learning platform.
+// No currency / shop / cosmetic models by design — progression is XP, skills, streaks, leagues, badges only.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// ───────────────────────── Identity ─────────────────────────
+
+enum Role {
+  STUDENT
+  TEACHER
+  ADMIN
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         Role     @default(STUDENT)
+  createdAt    DateTime @default(now())
+
+  profile           Profile?
+  skillProgress     UserSkillProgress[]
+  quizAttempts      QuizAttempt[]
+  xpTransactions    XpTransaction[]
+  leagueMemberships LeagueMembership[]
+  dailyQuests       DailyQuest[]
+  badges            UserBadge[]
+  activityDays      ActivityDay[]
+  pathEnrollments   PathEnrollment[]
+}
+
+// Gamification state that changes often — kept separate from User for clarity.
+model Profile {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  level   Int @default(1) // denormalized cache of levelFromTotalXp(totalXp).level, for cheap queries/sorting
+  totalXp Int @default(0)
+
+  hearts       Int       @default(5)
+  heartsMax    Int       @default(5)
+  nextRegenAt  DateTime? // timestamp the next heart regenerates at; null when hearts are full
+
+  currentStreak    Int       @default(0)
+  bestStreak       Int       @default(0)
+  lastActiveDate   String? // YYYY-MM-DD, local calendar day of last qualifying activity
+
+  updatedAt DateTime @updatedAt
+}
+
+// One calendar day of qualifying activity, powers the streak doodle-calendar.
+model ActivityDay {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date   String // YYYY-MM-DD
+  xpEarned Int  @default(0)
+
+  @@unique([userId, date])
+  @@index([userId])
+}
+
+// ───────────────────────── Learning content ─────────────────────────
+
+model LearningPath {
+  id          String  @id @default(cuid())
+  slug        String  @unique
+  title       String
+  description String
+  icon        String  @default("compass") // maps to a hand-drawn icon component
+  order       Int     @default(0)
+
+  milestones Milestone[]
+  skills     Skill[]
+  enrollments PathEnrollment[]
+}
+
+model PathEnrollment {
+  id         String       @id @default(cuid())
+  userId     String
+  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pathId     String
+  path       LearningPath @relation(fields: [pathId], references: [id], onDelete: Cascade)
+  startedAt  DateTime     @default(now())
+
+  @@unique([userId, pathId])
+}
+
+// A milestone groups a run of skills into a labeled checkpoint shown before the tree.
+model Milestone {
+  id          String @id @default(cuid())
+  pathId      String
+  path        LearningPath @relation(fields: [pathId], references: [id], onDelete: Cascade)
+  title       String
+  description String
+  order       Int    @default(0)
+
+  skills Skill[]
+}
+
+// A node in the skill tree.
+model Skill {
+  id          String   @id @default(cuid())
+  pathId      String
+  path        LearningPath @relation(fields: [pathId], references: [id], onDelete: Cascade)
+  milestoneId String?
+  milestone   Milestone? @relation(fields: [milestoneId], references: [id])
+
+  title       String
+  description String
+  icon        String @default("lightbulb")
+  xpReward    Int    @default(20)
+
+  // Layout hints for the hand-drawn skill tree canvas (tree is non-linear / branching).
+  tier Int // vertical row, 0-indexed
+  col  Int // horizontal slot within the row
+
+  prerequisites SkillPrerequisite[] @relation("SkillToPrereq")
+  unlocksFor    SkillPrerequisite[] @relation("PrereqToSkill")
+
+  lessons  Lesson[]
+  progress UserSkillProgress[]
+
+  @@index([pathId])
+}
+
+// Self-referential many-to-many: a skill can require several prerequisite skills (branching tree).
+model SkillPrerequisite {
+  id             String @id @default(cuid())
+  skillId        String
+  skill          Skill  @relation("SkillToPrereq", fields: [skillId], references: [id], onDelete: Cascade)
+  prerequisiteId String
+  prerequisite   Skill  @relation("PrereqToSkill", fields: [prerequisiteId], references: [id], onDelete: Cascade)
+
+  @@unique([skillId, prerequisiteId])
+}
+
+enum SkillStatus {
+  LOCKED
+  UNLOCKED
+  IN_PROGRESS
+  COMPLETED
+}
+
+model UserSkillProgress {
+  id          String      @id @default(cuid())
+  userId      String
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skillId     String
+  skill       Skill       @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  status      SkillStatus @default(LOCKED)
+  bestScore   Int         @default(0) // 0-100
+  completedAt DateTime?
+
+  @@unique([userId, skillId])
+  @@index([userId])
+}
+
+model Lesson {
+  id       String @id @default(cuid())
+  skillId  String
+  skill    Skill  @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  title    String
+  order    Int    @default(0)
+  xpReward Int    @default(10)
+
+  questions    Question[]
+  quizAttempts QuizAttempt[]
+}
+
+enum QuestionType {
+  MULTIPLE_CHOICE
+  TRUE_FALSE
+  FILL_BLANK
+}
+
+model Question {
+  id            String       @id @default(cuid())
+  lessonId      String
+  lesson        Lesson       @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  type          QuestionType @default(MULTIPLE_CHOICE)
+  prompt        String
+  optionsJson   String // JSON-encoded string[] of choices (empty for FILL_BLANK)
+  correctAnswer String // exact-match answer, or index-as-string for MC/TF
+  explanation   String // shown on incorrect answer for step-by-step feedback
+  order         Int          @default(0)
+
+  responses QuestionResponse[]
+}
+
+// ───────────────────────── Quiz attempts & instant feedback ─────────────────────────
+
+model QuizAttempt {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lessonId    String
+  lesson      Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  isPractice  Boolean   @default(false) // practice/review mode: wrong answers don't cost hearts, completion refills one
+  scorePct    Int       @default(0)
+  xpEarned    Int       @default(0)
+  heartsLost  Int       @default(0)
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  responses QuestionResponse[]
+
+  @@index([userId])
+}
+
+model QuestionResponse {
+  id          String      @id @default(cuid())
+  attemptId   String
+  attempt     QuizAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  questionId  String
+  question    Question    @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  userAnswer  String
+  isCorrect   Boolean
+  answeredAt  DateTime    @default(now())
+}
+
+// ───────────────────────── XP ledger ─────────────────────────
+
+enum XpSource {
+  LESSON
+  QUIZ
+  DAILY_QUEST
+  STREAK_BONUS
+  SKILL_COMPLETE
+}
+
+model XpTransaction {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount    Int
+  source    XpSource
+  sourceId  String? // id of the lesson/quiz/quest this XP came from
+  weekId    String // ISO week key e.g. "2026-W38", used for league scoring
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([weekId])
+}
+
+// ───────────────────────── Leagues & leaderboards ─────────────────────────
+
+enum LeagueTier {
+  BRONZE
+  SILVER
+  GOLD
+  DIAMOND
+}
+
+model League {
+  id    String     @id @default(cuid())
+  tier  LeagueTier @unique
+  order Int // 0 = lowest tier
+
+  divisions LeagueDivision[]
+}
+
+// One group of up to 30 competing students for a given week, within a tier.
+model LeagueDivision {
+  id       String @id @default(cuid())
+  leagueId String
+  league   League @relation(fields: [leagueId], references: [id], onDelete: Cascade)
+  weekId   String // ISO week key, e.g. "2026-W38"
+  index    Int    @default(0) // division number within the tier for that week
+
+  memberships LeagueMembership[]
+
+  @@unique([leagueId, weekId, index])
+  @@index([weekId])
+}
+
+enum WeekResult {
+  PENDING
+  PROMOTED
+  HELD
+  DEMOTED
+}
+
+model LeagueMembership {
+  id         String         @id @default(cuid())
+  userId     String
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  divisionId String
+  division   LeagueDivision @relation(fields: [divisionId], references: [id], onDelete: Cascade)
+  weeklyXp   Int            @default(0)
+  rank       Int? // computed at week close
+  result     WeekResult     @default(PENDING)
+
+  @@unique([userId, divisionId])
+  @@index([divisionId])
+}
+
+// ───────────────────────── Daily quests ─────────────────────────
+
+enum QuestType {
+  COMPLETE_LESSONS
+  EARN_XP
+  PERFECT_QUIZ
+  PRACTICE_SESSION
+}
+
+// Catalog of possible quest shapes; concrete daily quests are rolled from these.
+model DailyQuestTemplate {
+  id          String    @id @default(cuid())
+  type        QuestType
+  description String // e.g. "Complete {target} lessons"
+  targetMin   Int
+  targetMax   Int
+  xpReward    Int
+
+  quests DailyQuest[]
+}
+
+model DailyQuest {
+  id             String             @id @default(cuid())
+  userId         String
+  user           User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  templateId     String
+  template       DailyQuestTemplate @relation(fields: [templateId], references: [id])
+  date           String // YYYY-MM-DD this quest was issued for
+  target         Int
+  progress       Int                @default(0)
+  completed      Boolean            @default(false)
+  xpReward       Int
+  claimedAt      DateTime?
+
+  @@unique([userId, templateId, date])
+  @@index([userId, date])
+}
+
+// ───────────────────────── Badges & achievements ─────────────────────────
+
+enum BadgeCriteria {
+  STREAK_DAYS
+  SKILLS_COMPLETED
+  LEVEL_REACHED
+  LEAGUE_PROMOTIONS
+  PERFECT_QUIZZES
+  PATH_COMPLETED
+}
+
+model Badge {
+  id            String        @id @default(cuid())
+  key           String        @unique
+  title         String
+  description   String
+  icon          String        @default("badge") // hand-drawn icon key
+  criteria      BadgeCriteria
+  criteriaValue Int // threshold to earn it
+
+  earners UserBadge[]
+}
+
+model UserBadge {
+  id       String   @id @default(cuid())
+  userId   String
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badgeId  String
+  badge    Badge    @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+  earnedAt DateTime @default(now())
+
+  @@unique([userId, badgeId])
+}
