@@ -9,10 +9,10 @@ import { useSkillTree, type TreeSkillNode } from "@/lib/hooks/useSkillTree";
 import { useTranslation } from "@/lib/i18n/LocaleProvider";
 import { pathColor } from "@/lib/pathColors";
 
-const COLS = 3;
-const MIN_COL_WIDTH_MOBILE = 85;
-const MIN_COL_WIDTH_DESKTOP = 170;
-const MAX_COL_WIDTH = 320;
+const COLS = 6;
+const MIN_COL_WIDTH_MOBILE = 40;
+const MIN_COL_WIDTH_DESKTOP = 80;
+const MAX_COL_WIDTH = 130;
 
 /** Boustrophedon layout: row 0 goes right-to-left, row 1 left-to-right, row 2 right-to-left, ... */
 function gridPosition(index: number) {
@@ -50,8 +50,8 @@ export function PathTrail({ pathId, pathTitle }: { pathId: string; pathTitle: st
   const isNarrow = containerWidth > 0 && containerWidth < COLS * MIN_COL_WIDTH_DESKTOP;
   const minColWidth = isNarrow ? MIN_COL_WIDTH_MOBILE : MIN_COL_WIDTH_DESKTOP;
   const colWidth = Math.min(MAX_COL_WIDTH, Math.max(minColWidth, containerWidth / COLS));
-  const nodeSize = Math.round(colWidth * 0.6);
-  const rowHeight = Math.round(colWidth * 1.13);
+  const nodeSize = Math.round(colWidth * 0.55);
+  const rowHeight = Math.round(colWidth * 1.25);
 
   const ordered = useMemo(
     () => [...nodes].sort((a, b) => (a.tier - b.tier) || (a.col - b.col)),
@@ -142,15 +142,15 @@ export function PathTrail({ pathId, pathTitle }: { pathId: string; pathTitle: st
               >
                 <span className={completed ? "text-[var(--success)]" : locked ? "text-[var(--ink-faint)]" : "text-[var(--info)]"}>
                   {locked ? (
-                    <LockIcon size={Math.round(nodeSize * 0.41)} />
+                    <LockIcon size={Math.round(nodeSize * 0.4)} />
                   ) : completed ? (
-                    <CheckIcon size={Math.round(nodeSize * 0.43)} />
+                    <CheckIcon size={Math.round(nodeSize * 0.42)} />
                   ) : (
-                    <SkillIcon icon={skill.icon} size={Math.round(nodeSize * 0.43)} />
+                    <SkillIcon icon={skill.icon} size={Math.round(nodeSize * 0.42)} />
                   )}
                 </span>
               </button>
-              <p className="text-sm text-center font-display leading-tight" style={{ maxWidth: colWidth - 12 }}>
+              <p className="text-[11px] text-center font-display leading-tight" style={{ maxWidth: colWidth - 6 }}>
                 {skill.title}
               </p>
             </div>
