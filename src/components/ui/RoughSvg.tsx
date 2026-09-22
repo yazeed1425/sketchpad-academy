@@ -11,6 +11,7 @@ import rough from "roughjs";
 export function RoughPanel({
   children,
   className = "",
+  style,
   rounded = 14,
   fill,
   fillStyle = "solid",
@@ -20,6 +21,7 @@ export function RoughPanel({
 }: {
   children?: React.ReactNode;
   className?: string;
+  style?: React.CSSProperties;
   rounded?: number;
   fill?: string;
   fillStyle?: "solid" | "hachure" | "cross-hatch";
@@ -77,9 +79,9 @@ export function RoughPanel({
   }, [size, rounded, fill, fillStyle, strokeWidth, roughness, seed]);
 
   return (
-    <div ref={wrapperRef} className={`relative ${className}`}>
+    <div ref={wrapperRef} className={`relative ${className}`} style={style}>
       <svg ref={svgRef} className="absolute inset-0 h-full w-full pointer-events-none" aria-hidden />
-      <div className="relative">{children}</div>
+      <div className="relative h-full w-full flex items-center justify-center">{children}</div>
     </div>
   );
 }

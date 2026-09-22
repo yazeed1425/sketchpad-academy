@@ -67,6 +67,7 @@ const en = {
   "tree.locked": "Complete the connected skills above to unlock this one.",
   "tree.bestScore": "Best score: {score}%",
   "tree.backToTree": "Back to skill tree",
+  "tree.start": "Start",
 
   "lesson.loadingLesson": "Loading lesson...",
   "lesson.outOfHearts": "Out of hearts",
@@ -184,6 +185,7 @@ const ar: Record<TranslationKey, string> = {
   "tree.locked": "أكمل المهارات المرتبطة أعلاه لفتح هذه المهارة.",
   "tree.bestScore": "أفضل نتيجة: {score}%",
   "tree.backToTree": "العودة إلى شجرة المهارات",
+  "tree.start": "ابدأ",
 
   "lesson.loadingLesson": "جارٍ تحميل الدرس...",
   "lesson.outOfHearts": "نفدت قلوبك",
