@@ -164,9 +164,9 @@ const en = {
   "diagnostic.report.mastery.MASTERED": "Mastered",
   "diagnostic.report.mastery.DEVELOPING": "Developing",
   "diagnostic.report.mastery.GAP": "Skill gap",
-  "diagnostic.report.unlockedNote": "Marked complete on your skill tree — dependent skills unlocked.",
+  "diagnostic.report.roadmapReady": "Your personalized roadmap is ready",
   "diagnostic.report.goDashboard": "Go to dashboard",
-  "diagnostic.report.viewPaths": "View learning paths",
+  "diagnostic.report.viewPaths": "View your roadmap",
 } as const;
 
 export type TranslationKey = keyof typeof en;
@@ -332,9 +332,9 @@ const ar: Record<TranslationKey, string> = {
   "diagnostic.report.mastery.MASTERED": "متقَن",
   "diagnostic.report.mastery.DEVELOPING": "قيد التطور",
   "diagnostic.report.mastery.GAP": "فجوة مهارية",
-  "diagnostic.report.unlockedNote": "تم إتقانها في شجرة مهاراتك — وفُتحت المهارات المرتبطة بها.",
+  "diagnostic.report.roadmapReady": "خطتك التعليمية الشخصية جاهزة",
   "diagnostic.report.goDashboard": "اذهب إلى لوحة التحكم",
-  "diagnostic.report.viewPaths": "شاهد مسارات التعلم",
+  "diagnostic.report.viewPaths": "شاهد خطتك",
 };
 
 export const translations: Record<Locale, Record<TranslationKey, string>> = { en, ar };

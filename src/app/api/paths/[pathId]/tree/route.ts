@@ -7,6 +7,9 @@ export async function GET(_request: Request, context: { params: Promise<{ pathId
     const userId = await requireUserId();
     const { pathId } = await context.params;
 
+    const path = await db.learningPath.findUniqueOrThrow({ where: { id: pathId }, select: { userId: true } });
+    if (path.userId && path.userId !== userId) throw new Error("Forbidden");
+
     const skills = await db.skill.findMany({
       where: { pathId },
       orderBy: [{ tier: "asc" }, { col: "asc" }],

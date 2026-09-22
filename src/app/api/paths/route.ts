@@ -7,6 +7,8 @@ export async function GET() {
     const userId = await requireUserId();
     const [paths, enrollments] = await Promise.all([
       db.learningPath.findMany({
+        // Personalized (Gemini-generated) paths are only ever visible to the user they were made for.
+        where: { OR: [{ userId: null }, { userId }] },
         orderBy: { order: "asc" },
         include: {
           milestones: { orderBy: { order: "asc" } },

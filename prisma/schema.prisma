@@ -36,6 +36,7 @@ model User {
   activityDays       ActivityDay[]
   pathEnrollments    PathEnrollment[]
   diagnosticAttempts DiagnosticAttempt[]
+  personalizedPaths  LearningPath[]
 }
 
 // Gamification state that changes often — kept separate from User for clarity.
@@ -80,9 +81,17 @@ model LearningPath {
   icon        String @default("compass") // maps to a hand-drawn icon component
   order       Int    @default(0)
 
+  // null = shared catalog path (Math Mastery, etc). Set = a personalized roadmap Gemini
+  // generated for this one user from their diagnostic results — never shown to anyone else.
+  userId         String?
+  user           User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  generatedByLlm Boolean @default(false)
+
   milestones  Milestone[]
   skills      Skill[]
   enrollments PathEnrollment[]
+
+  @@index([userId])
 }
 
 model PathEnrollment {

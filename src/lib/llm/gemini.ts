@@ -177,3 +177,120 @@ ${transcriptText}
 
   return generateJson<LlmEvaluation>(prompt, EVALUATION_SCHEMA);
 }
+
+export interface GeneratedRoadmapQuestion {
+  prompt: string;
+  options: string[];
+  correctAnswer: string;
+  explanation: string;
+}
+
+export interface GeneratedRoadmapSkill {
+  key: string;
+  title: string;
+  description: string;
+  milestoneTitle: string;
+  tier: number;
+  alreadyMastered: boolean;
+  prerequisites: string[];
+  lessonTitle: string;
+  questions: GeneratedRoadmapQuestion[];
+}
+
+export interface GeneratedRoadmap {
+  title: string;
+  description: string;
+  milestones: { title: string; description: string }[];
+  skills: GeneratedRoadmapSkill[];
+}
+
+const ROADMAP_SCHEMA = {
+  type: "OBJECT",
+  properties: {
+    title: { type: "STRING" },
+    description: { type: "STRING" },
+    milestones: {
+      type: "ARRAY",
+      items: {
+        type: "OBJECT",
+        properties: { title: { type: "STRING" }, description: { type: "STRING" } },
+        required: ["title", "description"],
+      },
+    },
+    skills: {
+      type: "ARRAY",
+      minItems: 6,
+      maxItems: 8,
+      items: {
+        type: "OBJECT",
+        properties: {
+          key: { type: "STRING" },
+          title: { type: "STRING" },
+          description: { type: "STRING" },
+          milestoneTitle: { type: "STRING" },
+          tier: { type: "INTEGER" },
+          alreadyMastered: { type: "BOOLEAN" },
+          prerequisites: { type: "ARRAY", items: { type: "STRING" } },
+          lessonTitle: { type: "STRING" },
+          questions: {
+            type: "ARRAY",
+            minItems: 2,
+            maxItems: 3,
+            items: {
+              type: "OBJECT",
+              properties: {
+                prompt: { type: "STRING" },
+                options: { type: "ARRAY", items: { type: "STRING" }, minItems: 4, maxItems: 4 },
+                correctAnswer: { type: "STRING" },
+                explanation: { type: "STRING" },
+              },
+              required: ["prompt", "options", "correctAnswer", "explanation"],
+            },
+          },
+        },
+        required: ["key", "title", "description", "milestoneTitle", "tier", "alreadyMastered", "prerequisites", "lessonTitle", "questions"],
+      },
+    },
+  },
+  required: ["title", "description", "milestones", "skills"],
+};
+
+export interface RoadmapEvaluationInput {
+  subSkills: { subSkill: $Enums.DiagnosticSubSkill; mastery: $Enums.MasteryLevel; rationale: string }[];
+  overallSummary: string;
+}
+
+/** Designs a personalized skill-tree roadmap (with real practice lessons) from a diagnostic's results. */
+export async function generatePersonalizedRoadmap(evaluation: RoadmapEvaluationInput): Promise<GeneratedRoadmap> {
+  const breakdown = evaluation.subSkills
+    .map((s) => `- ${SUBSKILL_LABEL_AR[s.subSkill]}: ${s.mastery === "MASTERED" ? "متقن" : s.mastery === "DEVELOPING" ? "قيد التطور" : "فجوة مهارية"} — ${s.rationale}`)
+    .join("\n");
+
+  const prompt = `أنت مصمم مناهج خبير في اختبار القدرات العامة (GAT) السعودي.
+نتيجة تقييم طالب في اختبار تحديد مستوى تكيّفي:
+${breakdown}
+
+ملخص عام: ${evaluation.overallSummary}
+
+صمّم خطة تعلّم شخصية (شجرة مهارات) لهذا الطالب تحديداً بناءً على نتيجته:
+- من 6 إلى 8 عقد مهارة (skills)، تُعطى الأولوية للمهارات ذات "فجوة مهارية" كنقاط بداية أساسية (tier 0)، ثم مهارات "قيد التطور" لتعزيزها (tier 1)، ثم عقدة أو عقدتان اختياريتان لمهارة متقنة كتثبيت أو تحدٍّ إضافي (tier أعلى).
+- لكل عقدة: key فريد بالإنجليزية (kebab-case)، عنوان ووصف بالعربية، milestoneTitle (اسم مرحلة تجمع عدة عقد متقاربة)، tier (رقم صف يبدأ من 0)، alreadyMastered (true فقط إذا كانت هذه العقدة تمثل مباشرة مهارة صنّفها التقييم كـ"متقن")، وقائمة prerequisites (مفاتيح عقد أخرى في نفس القائمة يجب إتقانها أولاً — عقد tier 0 غالباً بدون متطلبات سابقة).
+- لكل عقدة: درس واحد (lessonTitle) يحتوي على 2-3 أسئلة اختيار من متعدد بالعربية (4 خيارات، خيار صحيح واحد يطابق correctAnswer حرفياً، مع شرح موجز) تدرّب الطالب تحديداً على الفجوة أو نقطة الضعف المحددة في تلك المهارة.
+- أعطِ الخطة عنواناً ووصفاً عاماً بالعربية (title, description)، وقسّمها إلى مراحل (milestones) منطقية.
+أعد النتيجة بصيغة JSON فقط حسب المخطط المطلوب.`;
+
+  const roadmap = await generateJson<GeneratedRoadmap>(prompt, ROADMAP_SCHEMA);
+
+  const validKeys = new Set(roadmap.skills.map((s) => s.key));
+  for (const skill of roadmap.skills) {
+    skill.prerequisites = skill.prerequisites.filter((k) => validKeys.has(k) && k !== skill.key);
+    for (const q of skill.questions) {
+      if (!q.options.includes(q.correctAnswer)) {
+        const trimmedMatch = q.options.find((o) => o.trim() === q.correctAnswer.trim());
+        if (trimmedMatch) q.correctAnswer = trimmedMatch;
+      }
+    }
+  }
+
+  return roadmap;
+}

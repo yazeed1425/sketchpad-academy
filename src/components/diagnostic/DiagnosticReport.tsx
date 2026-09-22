@@ -15,8 +15,6 @@ export interface DiagnosticSubSkillResult {
   accuracyPct: number;
   mastery: "GAP" | "DEVELOPING" | "MASTERED";
   rationale: string;
-  xpAwarded: number;
-  skillUnlockedIds: string[];
 }
 
 export interface DiagnosticReportData {
@@ -26,6 +24,8 @@ export interface DiagnosticReportData {
   verbalAccuracyPct: number;
   overallSummary: string;
   bonusXp: number;
+  roadmapPathId: string;
+  roadmapTitle: string;
   subSkills: DiagnosticSubSkillResult[];
 }
 
@@ -70,6 +70,13 @@ export function DiagnosticReport({ report }: { report: DiagnosticReportData }) {
         </Card>
       )}
 
+      {report.roadmapTitle && (
+        <Card className="bg-[var(--success-soft)] text-center">
+          <p className="text-xs font-display text-[var(--success)] mb-1">{t("diagnostic.report.roadmapReady")}</p>
+          <p className="font-display text-lg">{report.roadmapTitle}</p>
+        </Card>
+      )}
+
       <div className="space-y-2">
         {report.subSkills.map((s) => {
           const style = MASTERY_STYLE[s.mastery];
@@ -92,9 +99,6 @@ export function DiagnosticReport({ report }: { report: DiagnosticReportData }) {
                     {t("diagnostic.report.correctOf", { correct: s.correct, total: s.total })} · {s.accuracyPct}%
                   </p>
                   {s.rationale && <p className="text-xs text-[var(--ink-soft)] mt-1">{s.rationale}</p>}
-                  {s.mastery === "MASTERED" && s.xpAwarded > 0 && (
-                    <p className="text-xs text-[var(--success)] mt-0.5">{t("diagnostic.report.unlockedNote")}</p>
-                  )}
                 </div>
               </div>
             </Card>
@@ -106,7 +110,7 @@ export function DiagnosticReport({ report }: { report: DiagnosticReportData }) {
         <Link href="/dashboard" className="flex-1">
           <RoughButton fullWidth>{t("diagnostic.report.goDashboard")}</RoughButton>
         </Link>
-        <Link href="/paths" className="flex-1">
+        <Link href={`/paths/${report.roadmapPathId}/tree`} className="flex-1">
           <RoughButton variant="secondary" fullWidth>
             {t("diagnostic.report.viewPaths")}
           </RoughButton>

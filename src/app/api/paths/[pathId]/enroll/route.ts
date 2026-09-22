@@ -8,6 +8,9 @@ export async function POST(_request: Request, context: { params: Promise<{ pathI
     const userId = await requireUserId();
     const { pathId } = await context.params;
 
+    const path = await db.learningPath.findUniqueOrThrow({ where: { id: pathId }, select: { userId: true } });
+    if (path.userId && path.userId !== userId) throw new Error("Forbidden");
+
     await db.pathEnrollment.upsert({
       where: { userId_pathId: { userId, pathId } },
       create: { userId, pathId },

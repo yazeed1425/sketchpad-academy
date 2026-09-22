@@ -21,16 +21,6 @@ export const SUBSKILL_ORDER: { domain: Domain; subSkill: SubSkill }[] = [
 
 export const TOTAL_QUESTIONS = SUBSKILL_ORDER.length * QUESTIONS_PER_SUBSKILL;
 
-/** Maps each sub-skill onto the real skill tree node it should sync progress to. */
-export const SUBSKILL_SKILL_MAP: Record<SubSkill, { pathSlug: string; skillTitle: string }> = {
-  ARITHMETIC: { pathSlug: "math-mastery", skillTitle: "Number Sense" },
-  ALGEBRA: { pathSlug: "math-mastery", skillTitle: "Linear Equations" },
-  GEOMETRY: { pathSlug: "math-mastery", skillTitle: "Geometry Basics" },
-  ANALOGIES: { pathSlug: "verbal-reasoning", skillTitle: "Analogies" },
-  CONTEXTUAL_ERRORS: { pathSlug: "verbal-reasoning", skillTitle: "Contextual Errors" },
-  READING_COMPREHENSION: { pathSlug: "verbal-reasoning", skillTitle: "Reading Comprehension" },
-};
-
 export interface DiagnosticStep {
   stepIndex: number;
   domain: Domain;

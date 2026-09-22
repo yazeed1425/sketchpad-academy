@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
-import { SUBSKILL_ORDER, SUBSKILL_SKILL_MAP, TIME_LIMIT_SEC, TOTAL_QUESTIONS, planStep } from "@/lib/gamification/diagnostic";
-import { initializeSkillProgressForEnrollment, recordSkillScore } from "@/lib/services/skillService";
+import { SUBSKILL_ORDER, TIME_LIMIT_SEC, TOTAL_QUESTIONS, planStep } from "@/lib/gamification/diagnostic";
 import { evaluateDiagnosticAttempt, generateDiagnosticQuestion, type DiagnosticTranscriptEntry } from "@/lib/llm/gemini";
+import { generateAndAssignPersonalizedPath } from "@/lib/services/roadmapService";
 import type { $Enums } from "@/generated/prisma/client";
 
 function normalize(answer: string) {
@@ -141,8 +141,6 @@ export interface DiagnosticSubSkillResult {
   accuracyPct: number;
   mastery: $Enums.MasteryLevel;
   rationale: string;
-  xpAwarded: number;
-  skillUnlockedIds: string[];
 }
 
 export interface DiagnosticReport {
@@ -153,6 +151,8 @@ export interface DiagnosticReport {
   verbalAccuracyPct: number;
   overallSummary: string;
   bonusXp: number;
+  roadmapPathId: string;
+  roadmapTitle: string;
   subSkills: DiagnosticSubSkillResult[];
 }
 
@@ -190,55 +190,10 @@ export async function completeDiagnostic(userId: string, attemptId: string): Pro
     if (r.isCorrect) tally.correct += 1;
   }
 
-  // Ensure the user is enrolled in every path this diagnostic touches, so the tree's
-  // normal LOCKED/UNLOCKED structure is in place before we layer placement results on top.
-  const pathSlugs = [...new Set(Object.values(SUBSKILL_SKILL_MAP).map((m) => m.pathSlug))];
-  const paths = await db.learningPath.findMany({ where: { slug: { in: pathSlugs } } });
-  for (const path of paths) {
-    await db.pathEnrollment.upsert({
-      where: { userId_pathId: { userId, pathId: path.id } },
-      create: { userId, pathId: path.id },
-      update: {},
-    });
-    await initializeSkillProgressForEnrollment(userId, path.id);
-  }
-
-  const subSkillResults: DiagnosticSubSkillResult[] = [];
-  let bonusXp = 0;
-
-  for (const { domain, subSkill } of SUBSKILL_ORDER) {
+  const subSkillResults: DiagnosticSubSkillResult[] = SUBSKILL_ORDER.map(({ domain, subSkill }) => {
     const { mastery, rationale } = evaluationBySubSkill.get(subSkill)!;
     const { correct, total } = correctBySubSkill.get(subSkill)!;
-    const mapping = SUBSKILL_SKILL_MAP[subSkill];
-    const skill = await db.skill.findFirst({ where: { title: mapping.skillTitle, path: { slug: mapping.pathSlug } } });
-
-    let xpAwarded = 0;
-    let skillUnlockedIds: string[] = [];
-
-    if (skill) {
-      if (mastery === "MASTERED") {
-        const result = await recordSkillScore(userId, skill.id, 100);
-        if (result.completedNow) {
-          xpAwarded = skill.xpReward;
-          skillUnlockedIds = result.unlockedSkillIds;
-        }
-      } else if (mastery === "DEVELOPING") {
-        const accuracyPct = total > 0 ? Math.round((correct / total) * 100) : 0;
-        const existing = await db.userSkillProgress.findUnique({ where: { userId_skillId: { userId, skillId: skill.id } } });
-        if (existing?.status !== "COMPLETED") {
-          await db.userSkillProgress.upsert({
-            where: { userId_skillId: { userId, skillId: skill.id } },
-            create: { userId, skillId: skill.id, status: "IN_PROGRESS", bestScore: accuracyPct },
-            update: { status: "IN_PROGRESS", bestScore: Math.max(existing?.bestScore ?? 0, accuracyPct) },
-          });
-        }
-      }
-      // GAP: leave whatever initializeSkillProgressForEnrollment set (LOCKED/UNLOCKED) —
-      // that position in the tree *is* the student's starting point.
-    }
-
-    bonusXp += xpAwarded;
-    subSkillResults.push({
+    return {
       domain,
       subSkill,
       correct,
@@ -246,10 +201,15 @@ export async function completeDiagnostic(userId: string, attemptId: string): Pro
       accuracyPct: total > 0 ? Math.round((correct / total) * 100) : 0,
       mastery,
       rationale,
-      xpAwarded,
-      skillUnlockedIds,
-    });
-  }
+    };
+  });
+
+  // Gemini designs a personalized skill tree from these results — this becomes the
+  // student's dashboard roadmap, replacing whatever personalized path they had before.
+  const roadmap = await generateAndAssignPersonalizedPath(userId, {
+    subSkills: subSkillResults.map(({ subSkill, mastery, rationale }) => ({ subSkill, mastery, rationale })),
+    overallSummary: evaluation.overallSummary,
+  });
 
   const totalCorrect = subSkillResults.reduce((sum, r) => sum + r.correct, 0);
   const quant = subSkillResults.filter((r) => r.domain === "QUANTITATIVE");
@@ -264,7 +224,9 @@ export async function completeDiagnostic(userId: string, attemptId: string): Pro
     quantitativeAccuracyPct: pct(quant),
     verbalAccuracyPct: pct(verbal),
     overallSummary: evaluation.overallSummary,
-    bonusXp,
+    bonusXp: roadmap.bonusXp,
+    roadmapPathId: roadmap.pathId,
+    roadmapTitle: roadmap.title,
     subSkills: subSkillResults,
   };
 
