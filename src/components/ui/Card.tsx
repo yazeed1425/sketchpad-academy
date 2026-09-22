@@ -1,21 +1,17 @@
 "use client";
 
-import { RoughPanel } from "./RoughSvg";
-
 export function Card({
   children,
   className = "",
   padding = "p-5",
-  seed,
 }: {
   children: React.ReactNode;
   className?: string;
   padding?: string;
-  seed?: number;
 }) {
   return (
-    <RoughPanel className={className} fill="var(--card-bg)" fillStyle="solid" rounded={16} seed={seed}>
+    <div className={`rounded-2xl border-2 border-[var(--ink)] bg-[var(--card-bg)] ${className}`}>
       <div className={padding}>{children}</div>
-    </RoughPanel>
+    </div>
   );
 }
