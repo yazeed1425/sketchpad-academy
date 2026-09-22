@@ -87,7 +87,7 @@ export function PathTrail({ pathId, pathTitle }: { pathId: string; pathTitle: st
   return (
     <div ref={wrapperRef} className="min-w-0 w-full">
       <div
-        className="mx-auto mb-8 rounded-3xl shadow-[var(--shadow-md)] flex items-center justify-between gap-3 px-4 py-3"
+        className="mx-auto mb-8 rounded-[var(--radius-4xl)] shadow-[var(--shadow-md)] flex items-center justify-between gap-3 px-4 py-3"
         style={{
           background: `linear-gradient(135deg, ${color.solid}, color-mix(in srgb, ${color.solid} 70%, black))`,
           maxWidth: gridWidth,
@@ -99,7 +99,7 @@ export function PathTrail({ pathId, pathTitle }: { pathId: string; pathTitle: st
         </div>
         <Link
           href={`/paths/${pathId}`}
-          className="shrink-0 flex items-center gap-1.5 text-sm font-display text-white border-2 border-white/70 rounded-lg px-2.5 py-1.5 hover:bg-white/10 transition-colors"
+          className="shrink-0 flex items-center gap-1.5 text-sm font-display text-white border border-white/70 rounded-full px-2.5 py-1.5 hover:bg-white/10 transition-colors"
         >
           <BookIcon size={16} />
           {t("tree.guide")}

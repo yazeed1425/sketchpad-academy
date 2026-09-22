@@ -1,11 +1,11 @@
 // Each learning path gets its own color identity (like course colors on Khan Academy/Duolingo)
 // so the app reads as a colorful subject catalog instead of one flat brand-blue everywhere.
 const PALETTE = [
-  { solid: "#2f80c9", soft: "#dbedfb" }, // blue
-  { solid: "#7c5cd6", soft: "#ece6fa" }, // violet
-  { solid: "#14a37f", soft: "#d7f3ea" }, // teal
-  { solid: "#e0568c", soft: "#fbe0ea" }, // rose
-  { solid: "#d97a1f", soft: "#fbe8d2" }, // amber
+  { solid: "#155eef", soft: "#eff4ff" }, // blue (Discover primary)
+  { solid: "#7a5af8", soft: "#f4f3ff" }, // purple
+  { solid: "#17b26a", soft: "#edfcf2" }, // green
+  { solid: "#d444f1", soft: "#fdf4ff" }, // fuchsia
+  { solid: "#f79009", soft: "#fef6e7" }, // amber
 ];
 
 function hashIndex(id: string, length: number) {

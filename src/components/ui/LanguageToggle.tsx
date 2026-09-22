@@ -8,7 +8,7 @@ export function LanguageToggle({ className = "" }: { className?: string }) {
   return (
     <button
       onClick={() => setLocale(locale === "ar" ? "en" : "ar")}
-      className={`text-sm border border-[var(--ink-soft)] rounded-lg px-2 py-1 cursor-pointer hover:bg-[var(--accent-soft)] transition-colors ${className}`}
+      className={`text-sm border border-[var(--border-primary)] rounded-[var(--radius-md)] px-2 py-1.5 cursor-pointer bg-[var(--card-bg)] text-[var(--ink-soft)] hover:bg-[var(--paper)] transition-colors ${className}`}
     >
       {t("lang.toggle")}
     </button>

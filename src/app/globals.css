@@ -1,21 +1,25 @@
 @import "tailwindcss";
 
 :root {
-  --paper: #f2f6fb;
-  --ink: #1a1a1a;
-  --ink-soft: #4a4a46;
-  --ink-faint: #9a958a;
-  --line: #1a1a1a;
-  --accent: #2f80c9; /* XP / primary actions */
-  --accent-soft: #dbedfb;
-  --heart: #e8555a;
-  --heart-soft: #fbdcdc;
-  --gold: #eab308;
-  --gold-soft: #fdf3c7;
-  --success: #3c9a5f;
-  --success-soft: #dcf3e3;
-  --info: #7c5cd6; /* secondary/status accent: level indicator, in-progress skills, practice hints */
-  --info-soft: #ece6fa;
+  /* MEDAD Discover design system tokens (colors/spacing/radius/shadow) — RTL and Cairo kept for Arabic. */
+  --paper: #f5f5f5; /* Gray/100 — viewport + sidebar background */
+  --ink: #181d27; /* Gray/900 — primary text */
+  --ink-soft: #414651; /* Gray/700 — secondary text */
+  --ink-faint: #717680; /* Gray/500 — tertiary/disabled text */
+  --line: #181d27;
+  --border-primary: #d5d7da;
+  --border-secondary: #e9eaeb;
+  --border-tertiary: #f5f5f5;
+  --accent: #155eef; /* Discover primary CTA (utility-blue-dark-600) */
+  --accent-soft: #eff4ff; /* utility-blue-dark-50 */
+  --heart: #f04438; /* Error/500 */
+  --heart-soft: color-mix(in srgb, #f04438 12%, white);
+  --gold: #f79009; /* Warning/500 */
+  --gold-soft: color-mix(in srgb, #f79009 12%, white);
+  --success: #17b26a; /* Success/500 */
+  --success-soft: #edfcf2; /* utility-green-50 */
+  --info: #7a5af8; /* secondary/status accent: level indicator, in-progress skills, practice hints */
+  --info-soft: #f4f3ff; /* utility-purple-50 */
   --card-bg: #ffffff;
 
   --tier-bronze: #b0692e;
@@ -23,9 +27,19 @@
   --tier-gold: #d1a327;
   --tier-diamond: #4fb6d6;
 
-  --shadow-sm: 0 1px 2px rgba(20, 20, 40, 0.05), 0 1px 1px rgba(20, 20, 40, 0.04);
-  --shadow-md: 0 8px 20px rgba(20, 20, 40, 0.08), 0 2px 6px rgba(20, 20, 40, 0.05);
-  --shadow-lg: 0 16px 32px rgba(20, 20, 40, 0.12), 0 4px 10px rgba(20, 20, 40, 0.06);
+  --radius-xxs: 2px;
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+  --radius-3xl: 20px;
+  --radius-4xl: 24px;
+
+  --shadow-sm: 0px 1px 2px rgba(10, 13, 18, 0.05);
+  --shadow-md: 0px 4px 6px -2px rgba(10, 13, 18, 0.03), 0px 12px 16px -4px rgba(10, 13, 18, 0.08);
+  --shadow-lg: 0px 8px 8px -4px rgba(10, 13, 18, 0.03), 0px 20px 24px -4px rgba(10, 13, 18, 0.08);
 }
 
 @theme inline {
@@ -33,6 +47,9 @@
   --color-ink: var(--ink);
   --color-ink-soft: var(--ink-soft);
   --color-ink-faint: var(--ink-faint);
+  --color-border-primary: var(--border-primary);
+  --color-border-secondary: var(--border-secondary);
+  --color-border-tertiary: var(--border-tertiary);
   --color-accent: var(--accent);
   --color-accent-soft: var(--accent-soft);
   --color-heart: var(--heart);
@@ -55,12 +72,15 @@
     --ink-soft: #b8c0d0;
     --ink-faint: #6b7385;
     --line: #e8ecf4;
+    --border-primary: #333d4d;
+    --border-secondary: #232c3a;
+    --border-tertiary: #1a2233;
     --card-bg: #1a2233;
     --accent-soft: #1c3350;
-    --heart-soft: #3d2530;
-    --gold-soft: #332a10;
-    --success-soft: #16302a;
-    --info-soft: #2a2350;
+    --heart-soft: color-mix(in srgb, #f04438 20%, #1a2233);
+    --gold-soft: color-mix(in srgb, #f79009 20%, #1a2233);
+    --success-soft: color-mix(in srgb, #17b26a 20%, #1a2233);
+    --info-soft: color-mix(in srgb, #7a5af8 20%, #1a2233);
   }
 }
 
@@ -71,12 +91,15 @@
   --ink-soft: #b8c0d0;
   --ink-faint: #6b7385;
   --line: #e8ecf4;
+  --border-primary: #333d4d;
+  --border-secondary: #232c3a;
+  --border-tertiary: #1a2233;
   --card-bg: #1a2233;
   --accent-soft: #1c3350;
-  --heart-soft: #3d2530;
-  --gold-soft: #332a10;
-  --success-soft: #16302a;
-  --info-soft: #2a2350;
+  --heart-soft: color-mix(in srgb, #f04438 20%, #1a2233);
+  --gold-soft: color-mix(in srgb, #f79009 20%, #1a2233);
+  --success-soft: color-mix(in srgb, #17b26a 20%, #1a2233);
+  --info-soft: color-mix(in srgb, #7a5af8 20%, #1a2233);
 }
 
 body {

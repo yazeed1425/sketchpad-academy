@@ -17,7 +17,7 @@ export function XpBar({
 
   return (
     <div
-      className={`relative w-full flex rounded-full border border-[var(--ink-soft)] overflow-hidden bg-transparent ${className}`}
+      className={`relative w-full flex rounded-full border border-[var(--border-secondary)] overflow-hidden bg-transparent ${className}`}
       style={{ height }}
     >
       {pct > 0 && (

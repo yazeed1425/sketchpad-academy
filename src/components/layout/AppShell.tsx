@@ -35,10 +35,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     // The sidebar stays pinned to the physical right in both languages (per request),
     // so the shell chrome is forced LTR here; page content below gets its own dir per locale.
-    <div className="flex-1 flex" dir="ltr">
-      <div className="flex-1 flex flex-col min-w-0 order-1">
+    // Two-layer model: viewport + sidebar share --paper, no border/shadow on the sidebar;
+    // header+main sit inside a floating white card inset from every edge including the sidebar.
+    <div className="flex-1 flex bg-[var(--paper)] p-0 sm:p-3 gap-0 sm:gap-3" dir="ltr">
+      <div className="flex-1 flex flex-col min-w-0 order-1 bg-[var(--card-bg)] sm:rounded-[var(--radius-4xl)] overflow-hidden">
         {profile.profile && (
-          <header className="bg-[var(--card-bg)] shadow-[var(--shadow-sm)] relative z-10">
+          <header className="border-b border-[var(--border-secondary)] relative z-10">
             <div dir={locale === "ar" ? "rtl" : "ltr"} className="px-6 py-3 flex flex-wrap items-center gap-3">
               <div className="flex items-center gap-2 shrink-0">
                 <div
@@ -72,7 +74,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       <aside
         dir={locale === "ar" ? "rtl" : "ltr"}
-        className="order-2 w-16 sm:w-56 shrink-0 bg-[var(--card-bg)] shadow-[-2px_0_12px_rgba(20,20,40,0.05)] relative z-10 flex flex-col items-center sm:items-stretch gap-6 p-3 sm:p-4"
+        className="order-2 w-16 sm:w-56 shrink-0 relative z-10 flex flex-col items-center sm:items-stretch gap-6 p-3 sm:p-4"
       >
         <Link href="/dashboard" className="flex items-center gap-2 text-[var(--accent)] justify-center sm:justify-start">
           <CompassIcon size={28} />
@@ -88,10 +90,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 key={item.href}
                 href={item.href}
                 title={t(item.key)}
-                className={`font-display text-base px-3 py-2 rounded-xl flex items-center justify-center sm:justify-start gap-2.5 transition-colors ${
+                className={`font-display text-sm font-semibold px-3 py-2 flex items-center justify-center sm:justify-start gap-2.5 transition-colors ${
                   active
-                    ? "bg-[var(--accent-soft)] text-[var(--accent)]"
-                    : "text-[var(--ink-soft)] hover:bg-[var(--ink-faint)]/10 hover:text-[var(--ink)]"
+                    ? "bg-[var(--card-bg)] text-[var(--ink)] rounded-[var(--radius-4xl)]"
+                    : "text-[var(--ink-soft)] hover:bg-[var(--card-bg)]/60 rounded-[var(--radius-sm)]"
                 }`}
               >
                 <Icon size={22} />

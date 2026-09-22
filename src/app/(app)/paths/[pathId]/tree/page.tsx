@@ -50,7 +50,7 @@ export default function SkillTreePage({ params }: { params: Promise<{ pathId: st
 
   return (
     <div className="grid lg:grid-cols-[1fr_320px] gap-4">
-      <div className="h-[560px] border border-[var(--ink-faint)]/30 shadow-[var(--shadow-sm)] rounded-2xl overflow-hidden bg-[var(--card-bg)]">
+      <div className="h-[560px] border border-[var(--border-secondary)] shadow-[var(--shadow-sm)] rounded-2xl overflow-hidden bg-[var(--card-bg)]">
         <ReactFlow
           nodes={nodes}
           edges={edges}

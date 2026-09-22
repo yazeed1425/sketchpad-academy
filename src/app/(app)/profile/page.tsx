@@ -59,7 +59,7 @@ export default function ProfilePage() {
             </div>
           ))}
           {locked.map((b) => (
-            <div key={b.id} className="border-2 border-dashed border-[var(--ink-faint)]/50 rounded-xl p-3 text-center opacity-60">
+            <div key={b.id} className="border border-dashed border-[var(--border-primary)] rounded-xl p-3 text-center opacity-60">
               <span className="text-[var(--ink-faint)] inline-block mb-1">
                 <SkillIcon icon={b.icon} size={28} />
               </span>

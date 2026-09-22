@@ -46,7 +46,7 @@ export default function LeaguesPage() {
             return (
               <li
                 key={m.userId}
-                className={`flex items-center gap-3 px-4 py-3 border-b border-[var(--ink-faint)]/30 last:border-b-0 ${
+                className={`flex items-center gap-3 px-4 py-3 border-b border-[var(--border-secondary)] last:border-b-0 ${
                   m.isMe ? "bg-[var(--accent-soft)]" : ""
                 }`}
               >

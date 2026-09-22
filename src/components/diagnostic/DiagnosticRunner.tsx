@@ -149,7 +149,7 @@ export function DiagnosticRunner({
                 key={opt}
                 disabled={!!feedback}
                 onClick={() => setChoice(opt)}
-                className={`text-start px-4 py-2.5 rounded-xl border-2 transition-colors ${
+                className={`text-start px-4 py-2.5 rounded-xl border transition-colors ${
                   isCorrectOpt
                     ? "border-[var(--success)] bg-[var(--success-soft)]"
                     : isWrongChosen

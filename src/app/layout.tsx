@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Poppins, Inter, Cairo } from "next/font/google";
+import { Inter, Cairo } from "next/font/google";
 import { cookies } from "next/headers";
 import "./globals.css";
 import { LocaleProvider } from "@/lib/i18n/LocaleProvider";
@@ -7,7 +7,7 @@ import { DEFAULT_LOCALE, LOCALE_COOKIE, type Locale } from "@/lib/i18n/translati
 import { ThemeProvider } from "@/lib/theme/ThemeProvider";
 import { DEFAULT_THEME, THEME_COOKIE, type Theme } from "@/lib/theme/ThemeProvider";
 
-const displayFont = Poppins({
+const displayFont = Inter({
   variable: "--font-display",
   subsets: ["latin"],
   weight: ["500", "600", "700"],

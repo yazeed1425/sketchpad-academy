@@ -5,12 +5,11 @@ import type { ButtonHTMLAttributes } from "react";
 type Variant = "primary" | "secondary" | "ghost" | "danger" | "success";
 
 const VARIANT_CLASSES: Record<Variant, string> = {
-  primary:
-    "bg-gradient-to-br from-[var(--accent)] to-[var(--info)] border-transparent text-white hover:brightness-105 shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)]",
-  secondary: "bg-[var(--card-bg)] border-[var(--ink-soft)] text-[var(--ink)] hover:bg-[var(--ink-faint)]/10",
-  ghost: "bg-transparent border-transparent text-[var(--ink)] hover:bg-[var(--ink-faint)]/10",
-  danger: "bg-[var(--heart)] border-[var(--heart)] text-white hover:brightness-105 shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)]",
-  success: "bg-[var(--success)] border-[var(--success)] text-white hover:brightness-105 shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)]",
+  primary: "bg-[var(--accent)] border-transparent text-white hover:bg-[color-mix(in_srgb,var(--accent)_85%,black)] shadow-[var(--shadow-sm)]",
+  secondary: "bg-[var(--card-bg)] border-[var(--border-primary)] text-[var(--ink-soft)] hover:bg-[var(--paper)] shadow-[var(--shadow-sm)]",
+  ghost: "bg-transparent border-transparent text-[var(--ink)] hover:bg-[var(--paper)]",
+  danger: "bg-[var(--heart)] border-transparent text-white hover:brightness-105 shadow-[var(--shadow-sm)]",
+  success: "bg-[var(--success)] border-transparent text-white hover:brightness-105 shadow-[var(--shadow-sm)]",
 };
 
 interface RoughButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -21,7 +20,7 @@ interface RoughButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 export function RoughButton({ variant = "primary", fullWidth, className = "", children, disabled, ...rest }: RoughButtonProps) {
   return (
     <button
-      className={`font-display text-base px-5 py-2.5 rounded-2xl border-2 cursor-pointer transition-all hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-none ${
+      className={`font-display font-semibold text-base px-5 py-2.5 rounded-full border cursor-pointer transition-colors active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 ${
         fullWidth ? "w-full" : ""
       } ${VARIANT_CLASSES[variant]} ${className}`}
       disabled={disabled}
