@@ -170,12 +170,10 @@ function TrailConnectors({
         const prev = points[i];
         const unlocked = p.skill.status !== "LOCKED";
         return (
-          <line
+          <path
             key={p.skill.id}
-            x1={prev.x}
-            y1={prev.y}
-            x2={p.x}
-            y2={p.y}
+            d={connectorPath(prev, p, width)}
+            fill="none"
             stroke={unlocked ? "var(--ink)" : "var(--ink-faint)"}
             strokeWidth={unlocked ? 3 : 2.5}
             strokeDasharray={unlocked ? undefined : "7 6"}
@@ -185,4 +183,20 @@ function TrailConnectors({
       })}
     </svg>
   );
+}
+
+/**
+ * Row-to-row connectors in this boustrophedon layout always land back in the same
+ * column (that's how a snake path wraps), which means a straight line would drop
+ * right through the label sitting under the row's last node. Curve those specific
+ * segments out to whichever side has room instead of using a straight line.
+ */
+function connectorPath(prev: { x: number; y: number }, curr: { x: number; y: number }, width: number) {
+  if (prev.y === curr.y) return `M ${prev.x} ${prev.y} L ${curr.x} ${curr.y}`;
+
+  const bulge = prev.x < width / 2 ? 1 : -1;
+  const offset = COL_WIDTH * 0.68 * bulge;
+  const midY1 = prev.y + (curr.y - prev.y) * 0.35;
+  const midY2 = prev.y + (curr.y - prev.y) * 0.65;
+  return `M ${prev.x} ${prev.y} C ${prev.x + offset} ${midY1}, ${curr.x + offset} ${midY2}, ${curr.x} ${curr.y}`;
 }
