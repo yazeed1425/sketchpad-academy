@@ -13,6 +13,7 @@ export function RoughPanel({
   className = "",
   style,
   rounded = 14,
+  circle = false,
   fill,
   fillStyle = "solid",
   strokeWidth = 1.75,
@@ -23,6 +24,8 @@ export function RoughPanel({
   className?: string;
   style?: React.CSSProperties;
   rounded?: number;
+  /** Draw a true rough.js ellipse instead of a faux-rounded rectangle — for circular badges/nodes. */
+  circle?: boolean;
   fill?: string;
   fillStyle?: "solid" | "hachure" | "cross-hatch";
   strokeWidth?: number;
@@ -54,29 +57,19 @@ export function RoughPanel({
     const pad = strokeWidth;
     const w = size.width - pad * 2;
     const h = size.height - pad * 2;
-    const node = rc.rectangle(pad, pad, w, h, {
-      roughness,
-      strokeWidth,
-      stroke: "var(--line)",
-      fill,
-      fillStyle,
-      seed,
-    });
-    // Rounded corners aren't native to rough's rectangle; approximate with a path when requested.
-    if (rounded > 0) {
-      const path = rc.path(roundedRectPath(pad, pad, w, h, rounded), {
-        roughness,
-        strokeWidth,
-        stroke: "var(--line)",
-        fill,
-        fillStyle,
-        seed,
-      });
-      svg.appendChild(path);
+    const options = { roughness, strokeWidth, stroke: "var(--line)", fill, fillStyle, seed };
+
+    if (circle) {
+      // rough.js has a dedicated ellipse generator — much cleaner than faking a circle
+      // out of a rounded-rectangle path, which turns lumpy at small sizes.
+      svg.appendChild(rc.ellipse(pad + w / 2, pad + h / 2, w, h, options));
+    } else if (rounded > 0) {
+      // Rounded corners aren't native to rough's rectangle; approximate with a path.
+      svg.appendChild(rc.path(roundedRectPath(pad, pad, w, h, rounded), options));
     } else {
-      svg.appendChild(node);
+      svg.appendChild(rc.rectangle(pad, pad, w, h, options));
     }
-  }, [size, rounded, fill, fillStyle, strokeWidth, roughness, seed]);
+  }, [size, rounded, circle, fill, fillStyle, strokeWidth, roughness, seed]);
 
   return (
     <div ref={wrapperRef} className={`relative ${className}`} style={style}>

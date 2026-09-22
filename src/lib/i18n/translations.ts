@@ -68,6 +68,7 @@ const en = {
   "tree.bestScore": "Best score: {score}%",
   "tree.backToTree": "Back to skill tree",
   "tree.start": "Start",
+  "tree.guide": "Guide",
 
   "lesson.loadingLesson": "Loading lesson...",
   "lesson.outOfHearts": "Out of hearts",
@@ -186,6 +187,7 @@ const ar: Record<TranslationKey, string> = {
   "tree.bestScore": "أفضل نتيجة: {score}%",
   "tree.backToTree": "العودة إلى شجرة المهارات",
   "tree.start": "ابدأ",
+  "tree.guide": "الدليل",
 
   "lesson.loadingLesson": "جارٍ تحميل الدرس...",
   "lesson.outOfHearts": "نفدت قلوبك",

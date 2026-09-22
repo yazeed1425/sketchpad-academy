@@ -34,8 +34,7 @@ export default function DashboardPage() {
   return (
     <div className="grid lg:grid-cols-[1fr_300px] gap-6 items-start">
       <div>
-        <h1 className="font-display text-2xl mb-4 text-center">{activePath.title}</h1>
-        <PathTrail pathId={activePath.id} />
+        <PathTrail pathId={activePath.id} pathTitle={activePath.title} />
       </div>
 
       <div className="space-y-4">

@@ -155,6 +155,20 @@ export function MoonIcon({ className = "", size = 20 }: IconProps) {
   );
 }
 
+export function BookIcon({ className = "", size = 20 }: IconProps) {
+  return (
+    <svg {...base(size)} className={`ink-wobble-sm ${className}`} fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path
+        d="M12 6.2c-1.4-1.1-3.4-1.7-5.5-1.7-.6 0-1 .4-1 1v11c0 .6.4 1 1 1 2 0 3.9.6 5.2 1.6.2.1.4.2.6.2M12 6.2c1.4-1.1 3.4-1.7 5.5-1.7.6 0 1 .4 1 1v11c0 .6-.4 1-1 1-2 0-3.9.6-5.2 1.6-.2.1-.4.2-.6.2m0-12.7v12.7"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 export function CompassIcon({ className = "", size = 22 }: IconProps) {
   return (
     <svg {...base(size)} className={`ink-wobble-sm ${className}`} fill="none" xmlns="http://www.w3.org/2000/svg">

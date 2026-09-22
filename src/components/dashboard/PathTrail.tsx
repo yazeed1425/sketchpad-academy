@@ -5,7 +5,7 @@ import Link from "next/link";
 import { RoughPanel } from "@/components/ui/RoughSvg";
 import { Card } from "@/components/ui/Card";
 import { RoughButton } from "@/components/ui/RoughButton";
-import { SkillIcon, LockIcon, CheckIcon } from "@/components/ui/icons";
+import { SkillIcon, LockIcon, CheckIcon, BookIcon } from "@/components/ui/icons";
 import { useSkillTree, type TreeSkillNode } from "@/lib/hooks/useSkillTree";
 import { useTranslation } from "@/lib/i18n/LocaleProvider";
 
@@ -18,7 +18,7 @@ function offsetFor(index: number) {
   return OFFSET_CYCLE[index % OFFSET_CYCLE.length];
 }
 
-export function PathTrail({ pathId }: { pathId: string }) {
+export function PathTrail({ pathId, pathTitle }: { pathId: string; pathTitle: string }) {
   const { nodes, isLoading } = useSkillTree(pathId);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const { t } = useTranslation();
@@ -38,6 +38,8 @@ export function PathTrail({ pathId }: { pathId: string }) {
   if (isLoading) return <p>{t("tree.loading")}</p>;
   if (ordered.length === 0) return <p>{t("tree.empty")}</p>;
 
+  const currentMilestone = (ordered.find((s) => s.id === nextUpId) ?? ordered[ordered.length - 1])?.milestone;
+
   const width = Math.max(...OFFSET_CYCLE.map(Math.abs)) * 2 + NODE_SIZE;
   const height = ordered.length * ROW_HEIGHT;
   const centerX = width / 2;
@@ -50,6 +52,22 @@ export function PathTrail({ pathId }: { pathId: string }) {
 
   return (
     <div>
+      <RoughPanel fill="var(--accent)" fillStyle="solid" rounded={18} strokeWidth={2} className="max-w-md mx-auto mb-8">
+        <div className="flex items-center justify-between gap-3 px-4 py-3">
+          <div>
+            <p className="text-xs text-white/80 font-display">{pathTitle}</p>
+            {currentMilestone && <p className="text-lg font-display text-white leading-tight">{currentMilestone.title}</p>}
+          </div>
+          <Link
+            href={`/paths/${pathId}`}
+            className="shrink-0 flex items-center gap-1.5 text-sm font-display text-white border-2 border-white/70 rounded-lg px-2.5 py-1.5 hover:bg-white/10 transition-colors"
+          >
+            <BookIcon size={16} />
+            {t("tree.guide")}
+          </Link>
+        </div>
+      </RoughPanel>
+
       <div className="relative mx-auto" style={{ width, height: height + NODE_SIZE / 2 }}>
         <TrailConnectors points={points} />
 
@@ -76,7 +94,7 @@ export function PathTrail({ pathId }: { pathId: string }) {
 
               <button onClick={() => setSelectedId(skill.id)} aria-label={skill.title}>
                 <RoughPanel
-                  rounded={999}
+                  circle
                   fill={completed ? "var(--success-soft)" : locked ? "var(--card-bg)" : "var(--info-soft)"}
                   fillStyle="solid"
                   strokeWidth={locked ? 1.4 : 2.4}

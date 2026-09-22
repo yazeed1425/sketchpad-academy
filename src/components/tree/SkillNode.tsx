@@ -14,7 +14,7 @@ export function SkillNode({ data }: NodeProps) {
     <div className="flex flex-col items-center gap-1 w-24">
       <Handle type="target" position={Position.Top} style={{ opacity: 0 }} />
       <RoughPanel
-        rounded={999}
+        circle
         fill={completed ? "var(--success-soft)" : locked ? "var(--card-bg)" : "var(--info-soft)"}
         fillStyle="solid"
         strokeWidth={locked ? 1.4 : 2.4}
