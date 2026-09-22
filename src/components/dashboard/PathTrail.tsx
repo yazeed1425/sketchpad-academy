@@ -7,6 +7,7 @@ import { RoughButton } from "@/components/ui/RoughButton";
 import { SkillIcon, LockIcon, CheckIcon, BookIcon } from "@/components/ui/icons";
 import { useSkillTree, type TreeSkillNode } from "@/lib/hooks/useSkillTree";
 import { useTranslation } from "@/lib/i18n/LocaleProvider";
+import { pathColor } from "@/lib/pathColors";
 
 const NODE_SIZE = 92;
 const COL_WIDTH = 150;
@@ -42,6 +43,7 @@ export function PathTrail({ pathId, pathTitle }: { pathId: string; pathTitle: st
   if (ordered.length === 0) return <p>{t("tree.empty")}</p>;
 
   const currentMilestone = (ordered.find((s) => s.id === nextUpId) ?? ordered[ordered.length - 1])?.milestone;
+  const color = pathColor(pathId);
 
   const rowCount = Math.ceil(ordered.length / COLS);
   const width = COLS * COL_WIDTH;
@@ -58,7 +60,10 @@ export function PathTrail({ pathId, pathTitle }: { pathId: string; pathTitle: st
 
   return (
     <div>
-      <div className="max-w-md mx-auto mb-8 rounded-2xl bg-[var(--accent)] flex items-center justify-between gap-3 px-4 py-3">
+      <div
+        className="max-w-md mx-auto mb-8 rounded-3xl shadow-[var(--shadow-md)] flex items-center justify-between gap-3 px-4 py-3"
+        style={{ background: `linear-gradient(135deg, ${color.solid}, color-mix(in srgb, ${color.solid} 70%, black))` }}
+      >
         <div>
           <p className="text-xs text-white/80 font-display">{pathTitle}</p>
           {currentMilestone && <p className="text-lg font-display text-white leading-tight">{currentMilestone.title}</p>}

@@ -11,7 +11,7 @@ export function Card({
 }) {
   return (
     <div
-      className={`rounded-2xl border border-[var(--ink-faint)]/30 bg-[var(--card-bg)] shadow-[var(--shadow-sm)] transition-shadow ${className}`}
+      className={`rounded-3xl border border-[var(--ink-faint)]/30 bg-[var(--card-bg)] shadow-[var(--shadow-sm)] transition-shadow ${className}`}
     >
       <div className={padding}>{children}</div>
     </div>

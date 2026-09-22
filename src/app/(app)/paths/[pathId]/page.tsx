@@ -9,6 +9,7 @@ import { SkillIcon, StarIcon } from "@/components/ui/icons";
 import { usePaths } from "@/lib/hooks/useGameData";
 import { apiPost } from "@/lib/hooks/useApi";
 import { useTranslation } from "@/lib/i18n/LocaleProvider";
+import { pathColor } from "@/lib/pathColors";
 
 export default function PathDetailPage({ params }: { params: Promise<{ pathId: string }> }) {
   const { pathId } = use(params);
@@ -33,11 +34,13 @@ export default function PathDetailPage({ params }: { params: Promise<{ pathId: s
   if (isLoading) return <p>{t("pathDetail.loading")}</p>;
   if (!path) return <p>{t("pathDetail.notFound")}</p>;
 
+  const color = pathColor(path.id);
+
   return (
     <div className="max-w-2xl">
       <div className="flex items-start gap-3 mb-6">
-        <span className="text-[var(--accent)]">
-          <SkillIcon icon={path.icon} size={40} />
+        <span className="shrink-0 rounded-2xl p-3" style={{ backgroundColor: color.soft, color: color.solid }}>
+          <SkillIcon icon={path.icon} size={34} />
         </span>
         <div>
           <h1 className="font-display text-3xl">{path.title}</h1>
