@@ -195,6 +195,75 @@ export function CompassIcon({ className = "", size = 22 }: IconProps) {
   );
 }
 
+export function GearIcon({ className = "", size = 22 }: IconProps) {
+  const teeth = [0, 45, 90, 135, 180, 225, 270, 315];
+  return (
+    <svg {...base(size)} className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+      {teeth.map((angle) => (
+        <rect key={angle} x="10.9" y="1.8" width="2.2" height="3.4" rx="0.7" fill="currentColor" transform={`rotate(${angle} 12 12)`} />
+      ))}
+      <circle cx="12" cy="12" r="5.2" stroke="currentColor" strokeWidth="1.6" />
+      <circle cx="12" cy="12" r="1.6" fill="currentColor" />
+    </svg>
+  );
+}
+
+export function NotesIcon({ className = "", size = 22 }: IconProps) {
+  return (
+    <svg {...base(size)} className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path
+        d="M6 4h8.5L18 7.5V20a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1Z"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+      <path d="M14.5 4v3.5H18" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+      <path d="M7.5 10.5h6M7.5 13.3h6M7.5 16.1h3.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function CalculatorIcon({ className = "", size = 22 }: IconProps) {
+  return (
+    <svg {...base(size)} className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="5" y="3" width="14" height="18" rx="2" stroke="currentColor" strokeWidth="1.5" />
+      <rect x="7.2" y="5.5" width="9.6" height="3.6" rx="0.8" stroke="currentColor" strokeWidth="1.3" />
+      <circle cx="8.5" cy="13.2" r="0.95" fill="currentColor" />
+      <circle cx="12" cy="13.2" r="0.95" fill="currentColor" />
+      <circle cx="15.5" cy="13.2" r="0.95" fill="currentColor" />
+      <circle cx="8.5" cy="17" r="0.95" fill="currentColor" />
+      <circle cx="12" cy="17" r="0.95" fill="currentColor" />
+      <circle cx="15.5" cy="17" r="0.95" fill="currentColor" />
+    </svg>
+  );
+}
+
+export function TrophyIcon({ className = "", size = 22 }: IconProps) {
+  return (
+    <svg {...base(size)} className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path
+        d="M8 5.5H5.7a2 2 0 0 0 0 4H8M16 5.5h2.3a2 2 0 0 1 0 4H16"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+      />
+      <path d="M8 4.5h8v5a4 4 0 0 1-8 0v-5Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+      <path d="M12 13.5v2.8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <path
+        d="M9.7 19.5h4.6a1 1 0 0 0 1-1v-1.7h-6.6V18.5a1 1 0 0 0 1 1Z"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinejoin="round"
+      />
+      <path
+        d="m12 6.6.7 1.4 1.5.2-1.1 1.1.3 1.5-1.4-.8-1.4.8.3-1.5-1.1-1.1 1.5-.2.7-1.4Z"
+        fill="currentColor"
+        fillOpacity={0.9}
+      />
+    </svg>
+  );
+}
+
 export function CheckIcon({ className = "", size = 26 }: IconProps) {
   return (
     <svg {...base(size)} className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -220,6 +289,17 @@ const ICONS: Record<string, (props: IconProps) => React.ReactElement> = {
   badge: BadgeIcon,
   flame: FlameIcon,
   compass: CompassIcon,
+  book: BookIcon,
+  gear: GearIcon,
+  notes: NotesIcon,
+  calculator: CalculatorIcon,
+  trophy: TrophyIcon,
+  // Aliases for the topic-icon vocabulary used by skill-tree nodes (see topicIcons.tsx),
+  // so path catalog cards (which still use this simpler dispatcher) render sensibly too.
+  bulb: LightbulbIcon,
+  books: BookIcon,
+  search: TargetIcon,
+  chart: BadgeIcon,
 };
 
 export function SkillIcon({ icon, ...props }: IconProps & { icon: string }) {

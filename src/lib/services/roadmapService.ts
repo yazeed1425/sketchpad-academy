@@ -50,7 +50,7 @@ export async function generateAndAssignPersonalizedPath(userId: string, evaluati
         pathId: path.id,
         title: s.title,
         description: s.description,
-        icon: "lightbulb",
+        icon: s.icon,
         tier: s.tier,
         col,
         xpReward,
