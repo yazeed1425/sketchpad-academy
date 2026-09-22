@@ -11,6 +11,15 @@ import { useTranslation } from "@/lib/i18n/LocaleProvider";
 const NODE_SIZE = 68;
 const COL_WIDTH = 110;
 const ROW_HEIGHT = 130;
+const COLS = 3;
+
+/** Boustrophedon layout: row 0 goes right-to-left, row 1 left-to-right, row 2 right-to-left, ... */
+function gridPosition(index: number) {
+  const row = Math.floor(index / COLS);
+  const posInRow = index % COLS;
+  const col = row % 2 === 0 ? COLS - 1 - posInRow : posInRow;
+  return { row, col };
+}
 
 export function PathTrail({ pathId, pathTitle }: { pathId: string; pathTitle: string }) {
   const { nodes, isLoading } = useSkillTree(pathId);
@@ -34,17 +43,18 @@ export function PathTrail({ pathId, pathTitle }: { pathId: string; pathTitle: st
 
   const currentMilestone = (ordered.find((s) => s.id === nextUpId) ?? ordered[ordered.length - 1])?.milestone;
 
-  const colCount = Math.max(...ordered.map((s) => s.col)) + 1;
-  const tierCount = Math.max(...ordered.map((s) => s.tier)) + 1;
-  const width = colCount * COL_WIDTH;
-  const height = tierCount * ROW_HEIGHT;
+  const rowCount = Math.ceil(ordered.length / COLS);
+  const width = COLS * COL_WIDTH;
+  const height = rowCount * ROW_HEIGHT;
 
-  const points = ordered.map((skill) => ({
-    skill,
-    x: skill.col * COL_WIDTH + COL_WIDTH / 2,
-    y: skill.tier * ROW_HEIGHT + NODE_SIZE / 2,
-  }));
-  const pointById = new Map(points.map((p) => [p.skill.id, p]));
+  const points = ordered.map((skill, index) => {
+    const { row, col } = gridPosition(index);
+    return {
+      skill,
+      x: col * COL_WIDTH + COL_WIDTH / 2,
+      y: row * ROW_HEIGHT + NODE_SIZE / 2,
+    };
+  });
 
   return (
     <div>
@@ -63,7 +73,7 @@ export function PathTrail({ pathId, pathTitle }: { pathId: string; pathTitle: st
       </div>
 
       <div className="relative mx-auto" style={{ width, height: height + NODE_SIZE / 2 }}>
-        <TrailConnectors points={points} pointById={pointById} width={width} height={height + NODE_SIZE} />
+        <TrailConnectors points={points} width={width} height={height + NODE_SIZE} />
 
         {points.map(({ skill, x, y }) => {
           const locked = skill.status === "LOCKED";
@@ -140,37 +150,34 @@ export function PathTrail({ pathId, pathTitle }: { pathId: string; pathTitle: st
 
 function TrailConnectors({
   points,
-  pointById,
   width,
   height,
 }: {
   points: { skill: TreeSkillNode; x: number; y: number }[];
-  pointById: Map<string, { skill: TreeSkillNode; x: number; y: number }>;
   width: number;
   height: number;
 }) {
+  if (points.length < 2) return null;
+
   return (
     <svg className="absolute inset-0 -z-10" width={width} height={height} aria-hidden>
-      {points.flatMap((p) =>
-        p.skill.prerequisiteIds.map((prereqId) => {
-          const prev = pointById.get(prereqId);
-          if (!prev) return null;
-          const unlocked = p.skill.status !== "LOCKED";
-          return (
-            <line
-              key={`${prereqId}-${p.skill.id}`}
-              x1={prev.x}
-              y1={prev.y}
-              x2={p.x}
-              y2={p.y}
-              stroke={unlocked ? "var(--ink)" : "var(--ink-faint)"}
-              strokeWidth={unlocked ? 3 : 2.5}
-              strokeDasharray={unlocked ? undefined : "7 6"}
-              strokeLinecap="round"
-            />
-          );
-        })
-      )}
+      {points.slice(1).map((p, i) => {
+        const prev = points[i];
+        const unlocked = p.skill.status !== "LOCKED";
+        return (
+          <line
+            key={p.skill.id}
+            x1={prev.x}
+            y1={prev.y}
+            x2={p.x}
+            y2={p.y}
+            stroke={unlocked ? "var(--ink)" : "var(--ink-faint)"}
+            strokeWidth={unlocked ? 3 : 2.5}
+            strokeDasharray={unlocked ? undefined : "7 6"}
+            strokeLinecap="round"
+          />
+        );
+      })}
     </svg>
   );
 }
