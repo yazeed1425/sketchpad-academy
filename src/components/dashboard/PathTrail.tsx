@@ -8,9 +8,9 @@ import { SkillIcon, LockIcon, CheckIcon, BookIcon } from "@/components/ui/icons"
 import { useSkillTree, type TreeSkillNode } from "@/lib/hooks/useSkillTree";
 import { useTranslation } from "@/lib/i18n/LocaleProvider";
 
-const NODE_SIZE = 68;
-const COL_WIDTH = 110;
-const ROW_HEIGHT = 130;
+const NODE_SIZE = 92;
+const COL_WIDTH = 150;
+const ROW_HEIGHT = 170;
 const COLS = 3;
 
 /** Boustrophedon layout: row 0 goes right-to-left, row 1 left-to-right, row 2 right-to-left, ... */
@@ -107,10 +107,10 @@ export function PathTrail({ pathId, pathTitle }: { pathId: string; pathTitle: st
                 style={{ width: NODE_SIZE, height: NODE_SIZE }}
               >
                 <span className={completed ? "text-[var(--success)]" : locked ? "text-[var(--ink-faint)]" : "text-[var(--info)]"}>
-                  {locked ? <LockIcon size={28} /> : completed ? <CheckIcon size={30} /> : <SkillIcon icon={skill.icon} size={30} />}
+                  {locked ? <LockIcon size={38} /> : completed ? <CheckIcon size={40} /> : <SkillIcon icon={skill.icon} size={40} />}
                 </span>
               </button>
-              <p className="text-xs text-center font-display leading-tight max-w-24">{skill.title}</p>
+              <p className="text-sm text-center font-display leading-tight max-w-28">{skill.title}</p>
             </div>
           );
         })}
