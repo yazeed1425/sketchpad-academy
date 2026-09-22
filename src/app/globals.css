@@ -1,13 +1,13 @@
 @import "tailwindcss";
 
 :root {
-  --paper: #faf7f0;
+  --paper: #f2f6fb;
   --ink: #1a1a1a;
   --ink-soft: #4a4a46;
   --ink-faint: #9a958a;
   --line: #1a1a1a;
-  --accent: #ff6b4a; /* XP / primary actions */
-  --accent-soft: #ffe4da;
+  --accent: #2f80c9; /* XP / primary actions */
+  --accent-soft: #dbedfb;
   --heart: #e8555a;
   --heart-soft: #fbdcdc;
   --gold: #eab308;
@@ -52,7 +52,7 @@
     --ink-faint: #78756a;
     --line: #f2f0e9;
     --card-bg: #1e1c17;
-    --accent-soft: #4a2c22;
+    --accent-soft: #1e3a52;
     --heart-soft: #3d2323;
     --gold-soft: #3a3010;
     --success-soft: #1f3327;
@@ -68,7 +68,7 @@
   --ink-faint: #78756a;
   --line: #f2f0e9;
   --card-bg: #1e1c17;
-  --accent-soft: #4a2c22;
+  --accent-soft: #1e3a52;
   --heart-soft: #3d2323;
   --gold-soft: #3a3010;
   --success-soft: #1f3327;
