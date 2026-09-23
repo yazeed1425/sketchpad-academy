@@ -92,6 +92,7 @@ const en = {
   "lesson.skillsUnlocked": "{count} new skill(s) unlocked",
   "lesson.dayStreak": "{count}-day streak",
   "lesson.heartsLost": "-{count} heart(s)",
+  "lesson.testYourUnderstanding": "Test your understanding",
 
   "practice.title": "Practice Session",
   "practice.subtitle": "Review questions from skills you've already completed. No hearts lost — score {pct}%+ to earn one back.",
@@ -260,6 +261,7 @@ const ar: Record<TranslationKey, string> = {
   "lesson.skillsUnlocked": "تم فتح {count} مهارة جديدة",
   "lesson.dayStreak": "سلسلة {count} يوم",
   "lesson.heartsLost": "-{count} قلب",
+  "lesson.testYourUnderstanding": "اختبر فهمك",
 
   "practice.title": "جلسة تدريب",
   "practice.subtitle": "راجع أسئلة من المهارات التي أتقنتها بالفعل. لن تخسر قلوباً — احصل على {pct}%+ لاستعادة قلب.",

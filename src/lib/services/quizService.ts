@@ -4,6 +4,7 @@ import { grantXp } from "@/lib/services/xpService";
 import { incrementQuestProgress } from "@/lib/services/questService";
 import { recordSkillScore } from "@/lib/services/skillService";
 import { checkAndAwardBadges } from "@/lib/services/badgeService";
+import { generateLessonContent, type LessonContentSection } from "@/lib/llm/gemini";
 
 const PRACTICE_QUESTION_COUNT = 5;
 const PRACTICE_PASS_RATIO = 0.7;
@@ -50,15 +51,19 @@ export async function startAttempt(userId: string, lessonId: string) {
 
   const lesson = await db.lesson.findUniqueOrThrow({
     where: { id: lessonId },
-    include: { questions: { orderBy: { order: "asc" } }, skill: { select: { pathId: true } } },
+    include: { questions: { orderBy: { order: "asc" } }, skill: { select: { pathId: true, title: true, description: true } } },
   });
 
-  const attempt = await db.quizAttempt.create({ data: { userId, lessonId } });
+  const [attempt, content] = await Promise.all([
+    db.quizAttempt.create({ data: { userId, lessonId } }),
+    getOrGenerateLessonContent(lesson),
+  ]);
 
   return {
     attemptId: attempt.id,
     lessonTitle: lesson.title,
     pathId: lesson.skill.pathId,
+    content,
     questions: lesson.questions.map((q) => ({
       id: q.id,
       type: q.type,
@@ -66,6 +71,20 @@ export async function startAttempt(userId: string, lessonId: string) {
       options: JSON.parse(q.optionsJson) as string[],
     })),
   };
+}
+
+/** Returns the lesson's cached explanatory content, generating and persisting it via Gemini on first view. */
+async function getOrGenerateLessonContent(lesson: {
+  id: string;
+  content: string | null;
+  title: string;
+  skill: { title: string; description: string };
+}): Promise<LessonContentSection[]> {
+  if (lesson.content) return JSON.parse(lesson.content) as LessonContentSection[];
+
+  const generated = await generateLessonContent({ title: lesson.title, description: lesson.skill.description });
+  await db.lesson.update({ where: { id: lesson.id }, data: { content: JSON.stringify(generated.sections) } });
+  return generated.sections;
 }
 
 function normalize(answer: string) {

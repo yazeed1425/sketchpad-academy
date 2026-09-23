@@ -131,6 +131,20 @@ html[lang="ar"] .font-display {
   background-color: var(--paper);
 }
 
+/* KaTeX math is always LTR internally (digits/fractions read left-to-right) even when
+   embedded inside RTL Arabic paragraphs — isolate it so the bidi algorithm doesn't reorder
+   or overlap it with the surrounding text. */
+.katex {
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+.katex-display {
+  direction: ltr;
+  text-align: center;
+  margin: 0.5em 0;
+  overflow-x: auto;
+}
+
 @keyframes pop-in {
   0% { transform: scale(0.6); opacity: 0; }
   60% { transform: scale(1.08); opacity: 1; }

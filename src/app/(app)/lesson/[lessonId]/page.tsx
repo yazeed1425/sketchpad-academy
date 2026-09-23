@@ -7,6 +7,7 @@ import { RoughButton } from "@/components/ui/RoughButton";
 import { HeartBrokenIcon } from "@/components/ui/icons";
 import { QuizRunner, type QuizQuestion } from "@/components/quiz/QuizRunner";
 import { LessonSummary, type LessonCompleteResult } from "@/components/quiz/LessonSummary";
+import { LessonContentCard, type LessonContentSection } from "@/components/quiz/LessonContentCard";
 import { apiPost, ApiError } from "@/lib/hooks/useApi";
 import { useProfile } from "@/lib/hooks/useProfile";
 import { useTranslation } from "@/lib/i18n/LocaleProvider";
@@ -15,6 +16,7 @@ interface StartResponse {
   attemptId: string;
   lessonTitle: string;
   pathId: string;
+  content: LessonContentSection[];
   questions: QuizQuestion[];
 }
 
@@ -70,13 +72,24 @@ export default function LessonPage({ params }: { params: Promise<{ lessonId: str
   if (result) return <LessonSummary result={result} pathId={state.data.pathId} />;
 
   return (
-    <div className="max-w-lg mx-auto">
-      <h1 className="font-display text-2xl mb-4">{state.data.lessonTitle}</h1>
-      <QuizRunner<LessonCompleteResult>
-        attemptId={state.data.attemptId}
-        questions={state.data.questions}
-        onFinished={handleFinished}
-      />
+    <div className="max-w-2xl mx-auto space-y-6">
+      <div>
+        <h1 className="font-display text-2xl mb-4">{state.data.lessonTitle}</h1>
+        <div className="space-y-3">
+          {state.data.content.map((section, i) => (
+            <LessonContentCard key={i} section={section} />
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <h2 className="font-display text-lg mb-3">{t("lesson.testYourUnderstanding")}</h2>
+        <QuizRunner<LessonCompleteResult>
+          attemptId={state.data.attemptId}
+          questions={state.data.questions}
+          onFinished={handleFinished}
+        />
+      </div>
     </div>
   );
 }

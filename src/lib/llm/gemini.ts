@@ -111,6 +111,72 @@ export async function generateDiagnosticQuestion(params: {
   return result;
 }
 
+export type LessonSectionType = "concept" | "example" | "warning";
+
+export interface LessonContentSection {
+  type: LessonSectionType;
+  heading: string;
+  body: string;
+}
+
+export interface GeneratedLessonContent {
+  sections: LessonContentSection[];
+}
+
+const LESSON_CONTENT_SCHEMA = {
+  type: "OBJECT",
+  properties: {
+    sections: {
+      type: "ARRAY",
+      items: {
+        type: "OBJECT",
+        properties: {
+          type: { type: "STRING", enum: ["concept", "example", "warning"] },
+          heading: { type: "STRING" },
+          body: { type: "STRING" },
+        },
+        required: ["type", "heading", "body"],
+      },
+    },
+  },
+  required: ["sections"],
+};
+
+/** Generates the explanatory lesson content shown before its quiz, in Arabic Markdown+LaTeX. Called once per lesson and cached. */
+export async function generateLessonContent(params: { title: string; description: string }): Promise<GeneratedLessonContent> {
+  const prompt = `أنت معلم قدرات سعودي محترف (GAT) وخبير متمرّس تحديداً في مادة هذا الدرس — حدد أولاً التخصص الدقيق (رياضيات، جبر، هندسة، لغة عربية، استيعاب مقروء، تناظر لفظي... إلخ) من عنوان ووصف الدرس أدناه، واشرح بصفتك ذلك الخبير بالضبط، لا معلّماً عاماً. مهمتك شرح الدرس بأسلوب بصري ومبسّط ومباشر موجّه لطالب ثانوي، بدقة متناهية ودون أي مقدمات أو جمل تحفيزية فارغة (مثل "أهلاً بك"، "يا بطل"، "في رحلتك"، "تخيل معي"، "دعنا نستكشف"). كل جملة يجب أن تحمل معلومة أو قاعدة أو رقماً أو خطوة حل فعلية — إن حذفتَ الجملة ونقص المحتوى العلمي فهي حشو ويجب حذفها فعلاً.
+
+عنوان الدرس: "${params.title}"
+وصف الدرس: "${params.description}"
+
+قواعد تنسيق المعادلات والنصوص (صارمة جداً):
+- أي معادلة أو كسر أو قانون مستقل: بصيغة LaTeX بين علامتي $$ في سطر مستقل به، مثل: $$\\frac{a}{b}$$
+- أي رمز أو رقم أو متغير داخل جملة نصية: بصيغة LaTeX بين علامتي $ فقط، مثل: $20\\%$. لا تضع أي حرف أو كلمة عربية داخل علامتي $ أو $$ أبداً — يُسمح داخلها فقط بأرقام ورموز ومتغيرات لاتينية وعمليات رياضية.
+- تجنّب الفقرات الطويلة المتصلة تماماً — استخدم نقاطاً (- item) وأسطراً مستقلة لكل فكرة أو خطوة.
+- استخدم **نص عريض** (Markdown) لإبراز المصطلحات والتسميات المهمة.
+- لا تستخدم LaTeX خارج القسم الكمي (لا داعي له بمواضيع لغوية).
+
+أعد بالضبط 3 أقسام (sections)، كل قسم له type محدد بالضبط كالتالي:
+
+1. type="concept" — heading قصير جداً للمفهوم الأساسي. body: شرح مختصر جداً للمفهوم في سطرين كحد أقصى بصيغة نقاط، ثم القانون الأساسي في سطر LaTeX مستقل بين $$...$$.
+
+2. type="example" — heading يذكر أنه مثال توضيحي محلول. body يتبع بالضبط هذا الهيكل، مع سطر فارغ فاصل بين كل جزء (المسألة، خطوات الحل، النتيجة النهائية) حتى يُفهم كل جزء ككتلة Markdown مستقلة:
+**المسألة:** مسألة واقعية بأسلوب تجميعات اختبار القدرات، بأرقام حقيقية وليست افتراضية.
+
+**خطوات الحل:**
+1. **الخطوة الأولى:** شرح مختصر مع أي معادلة بصيغة $...$ أو $$...$$.
+2. **الخطوة الثانية:** شرح مختصر مع أي معادلة.
+(أضف خطوات إضافية بنفس النمط إن احتاج الحل ذلك)
+
+**النتيجة النهائية:** القيمة النهائية بصيغة $...$
+
+3. type="warning" — heading يذكر أنه خطأ شائع وتجنبه. body: نقطة أو نقطتان (- item) تذكر أكثر خطأ فعلي يقع فيه الطلاب في اختبار القدرات تحديداً بهذا الموضوع، مع طريقة تجنبه باختصار.
+
+أعد النتيجة بصيغة JSON فقط حسب المخطط المطلوب، بدون أي نص إضافي، وبدون رموز Markdown داخل heading (heading نص عادي فقط).`;
+
+  return generateJson<GeneratedLessonContent>(prompt, LESSON_CONTENT_SCHEMA);
+}
+
 export interface LlmSubSkillEvaluation {
   subSkill: $Enums.DiagnosticSubSkill;
   mastery: $Enums.MasteryLevel;
