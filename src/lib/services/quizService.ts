@@ -4,10 +4,43 @@ import { grantXp } from "@/lib/services/xpService";
 import { incrementQuestProgress } from "@/lib/services/questService";
 import { recordSkillScore } from "@/lib/services/skillService";
 import { checkAndAwardBadges } from "@/lib/services/badgeService";
-import { generateLessonContent, type LessonContentSection } from "@/lib/llm/gemini";
+import { generateLessonContent, generateEmbedding, type LessonContent, type LessonReference } from "@/lib/llm/gemini";
+import { getSupabase } from "@/lib/supabase";
 
 const PRACTICE_QUESTION_COUNT = 5;
 const PRACTICE_PASS_RATIO = 0.7;
+
+// Below this cosine similarity, the closest match in the question bank is too unrelated
+// to the lesson's topic to be worth grounding the example on.
+const RAG_SIMILARITY_FLOOR = 0.3;
+
+/**
+ * Looks up the closest real GAT question for a topic via vector search against the Supabase
+ * question bank. Never throws — RAG is a nice-to-have grounding signal, not a hard dependency,
+ * so any failure (missing config, quota limits, network) just means no reference was found.
+ */
+async function findReference(topic: string): Promise<LessonReference | undefined> {
+  try {
+    const embedding = await generateEmbedding(topic);
+    const { data, error } = await getSupabase().rpc("match_qudurat_questions_all", {
+      query_embedding: embedding,
+      match_count: 1,
+    });
+    if (error) throw error;
+
+    const match = data?.[0];
+    if (!match || match.similarity < RAG_SIMILARITY_FLOOR) return undefined;
+
+    return {
+      question: match.question_text,
+      explanation: match.explanation,
+      imageUrl: match.image_url ?? match.diagram_image_url ?? undefined,
+    };
+  } catch (err) {
+    console.error("RAG lookup failed, falling back to unreferenced lesson content:", err);
+    return undefined;
+  }
+}
 
 export class NoHeartsError extends Error {
   constructor() {
@@ -73,18 +106,19 @@ export async function startAttempt(userId: string, lessonId: string) {
   };
 }
 
-/** Returns the lesson's cached explanatory content, generating and persisting it via Gemini on first view. */
+/** Returns the lesson's cached explanatory content, generating and persisting it via Gemini (RAG-grounded when possible) on first view. */
 async function getOrGenerateLessonContent(lesson: {
   id: string;
   content: string | null;
   title: string;
   skill: { title: string; description: string };
-}): Promise<LessonContentSection[]> {
-  if (lesson.content) return JSON.parse(lesson.content) as LessonContentSection[];
+}): Promise<LessonContent> {
+  if (lesson.content) return JSON.parse(lesson.content) as LessonContent;
 
-  const generated = await generateLessonContent({ title: lesson.title, description: lesson.skill.description });
-  await db.lesson.update({ where: { id: lesson.id }, data: { content: JSON.stringify(generated.sections) } });
-  return generated.sections;
+  const reference = await findReference(`${lesson.title} ${lesson.skill.description}`);
+  const generated = await generateLessonContent({ title: lesson.title, description: lesson.skill.description, reference });
+  await db.lesson.update({ where: { id: lesson.id }, data: { content: JSON.stringify(generated) } });
+  return generated;
 }
 
 function normalize(answer: string) {

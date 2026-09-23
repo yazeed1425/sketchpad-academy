@@ -9,17 +9,23 @@ import { DiagnosticReport, type DiagnosticReportData } from "@/components/diagno
 import { apiPost } from "@/lib/hooks/useApi";
 import { useProfile } from "@/lib/hooks/useProfile";
 import { useTranslation } from "@/lib/i18n/LocaleProvider";
-import { TOTAL_QUESTIONS, TIME_LIMIT_SEC } from "@/lib/gamification/diagnostic";
+import { MAX_TOTAL_QUESTIONS, TIME_LIMIT_SEC } from "@/lib/gamification/diagnostic";
+
+interface Progress {
+  questionNumber: number;
+  subSkillNumber: number;
+  totalSubSkills: number;
+}
 
 type State =
   | { phase: "intro" }
   | { phase: "starting" }
-  | { phase: "running"; attemptId: string; question: DiagnosticQuestionView; progress: { current: number; total: number } }
+  | { phase: "running"; attemptId: string; question: DiagnosticQuestionView; progress: Progress }
   | { phase: "completed"; report: DiagnosticReportData }
   | { phase: "error"; message: string };
 
 type StartResponse =
-  | { status: "in-progress"; attemptId: string; progress: { current: number; total: number }; question: DiagnosticQuestionView }
+  | { status: "in-progress"; attemptId: string; progress: Progress; question: DiagnosticQuestionView }
   | { status: "ready-to-complete"; attemptId: string }
   | { status: "completed"; attemptId: string; report: DiagnosticReportData };
 
@@ -87,7 +93,7 @@ export default function DiagnosticPage() {
       <ul className="text-sm text-start space-y-2 mb-5 max-w-xs mx-auto">
         <li className="flex items-center gap-2">
           <ClockIcon size={16} className="text-[var(--accent)] shrink-0" />
-          {t("diagnostic.intro.point1", { count: TOTAL_QUESTIONS, minutes: Math.round((TOTAL_QUESTIONS * TIME_LIMIT_SEC) / 60) })}
+          {t("diagnostic.intro.point1", { count: MAX_TOTAL_QUESTIONS, minutes: Math.round((MAX_TOTAL_QUESTIONS * TIME_LIMIT_SEC) / 60) })}
         </li>
         <li className="flex items-center gap-2">
           <CheckIcon size={16} className="text-[var(--success)] shrink-0" />
