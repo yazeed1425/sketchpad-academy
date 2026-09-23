@@ -3,8 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { RoughButton } from "@/components/ui/RoughButton";
+import { MathText } from "@/components/ui/MathText";
 import { ClockIcon, CheckIcon, CrossIcon } from "@/components/ui/icons";
-import { apiPost } from "@/lib/hooks/useApi";
+import { apiFetcher, apiPost } from "@/lib/hooks/useApi";
 import { useTranslation } from "@/lib/i18n/LocaleProvider";
 import type { TranslationKey } from "@/lib/i18n/translations";
 
@@ -19,8 +20,9 @@ export interface DiagnosticQuestionView {
 }
 
 interface Progress {
-  current: number;
-  total: number;
+  questionNumber: number;
+  subSkillNumber: number;
+  totalSubSkills: number;
 }
 
 interface AnswerFeedback {
@@ -50,9 +52,15 @@ export function DiagnosticRunner({
   const [choice, setChoice] = useState("");
   const [feedback, setFeedback] = useState<AnswerFeedback | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [advancing, setAdvancing] = useState(false);
+  // Undefined while the background prefetch (kicked off in submitAnswer, see below) hasn't
+  // resolved yet — distinct from every real NextState so the "next question"/"see report"
+  // button label can tell "still loading" apart from a resolved state.
+  const [resolvedNext, setResolvedNext] = useState<NextState | undefined>(undefined);
   const [timeLeft, setTimeLeft] = useState(initialQuestion.timeLimitSec);
   const [timedQuestionId, setTimedQuestionId] = useState(initialQuestion.id);
   const startedAtRef = useRef(Date.now());
+  const nextStatePromiseRef = useRef<Promise<NextState> | null>(null);
   const { t } = useTranslation();
 
   // Reset the timer whenever a new question is shown — adjusted during render (not an
@@ -79,35 +87,44 @@ export function DiagnosticRunner({
     setSubmitting(true);
     const timeTakenSec = Math.round((Date.now() - startedAtRef.current) / 1000);
     try {
-      const result = await apiPost<{ feedback: AnswerFeedback; next: NextState }>(`/api/diagnostic/${attemptId}/answer`, {
+      const result = await apiPost<{ feedback: AnswerFeedback }>(`/api/diagnostic/${attemptId}/answer`, {
         questionId: question.id,
         answer: choice,
         timeTakenSec,
       });
       setFeedback(result.feedback);
-      // progress/question only advance once "next" is clicked, so the feedback step
-      // keeps showing the question that was just answered.
-      pendingNext.current = result.next;
+      setResolvedNext(undefined);
+      // Grading is instant, but picking the next question (RAG lookup + Gemini) isn't — kick
+      // it off now, in the background, while the student reads this feedback, instead of
+      // making them wait through "checking..." for both at once.
+      const promise = apiFetcher<NextState>(`/api/diagnostic/${attemptId}`);
+      nextStatePromiseRef.current = promise;
+      promise.then(setResolvedNext);
     } finally {
       setSubmitting(false);
     }
   }
 
-  const pendingNext = useRef<NextState | null>(null);
-
-  function next() {
-    const nextState = pendingNext.current;
-    setFeedback(null);
-    setChoice("");
-    if (!nextState || nextState.status !== "in-progress") {
-      onFinished();
-      return;
+  async function next() {
+    setAdvancing(true);
+    try {
+      // Usually already resolved by the time the student finishes reading the feedback; if
+      // not, this just waits on the same in-flight prefetch instead of starting a fresh one.
+      const nextState = resolvedNext ?? (await nextStatePromiseRef.current!);
+      setFeedback(null);
+      setChoice("");
+      if (!nextState || nextState.status !== "in-progress") {
+        onFinished();
+        return;
+      }
+      setQuestion(nextState.question);
+      setProgress(nextState.progress);
+    } finally {
+      setAdvancing(false);
     }
-    setQuestion(nextState.question);
-    setProgress(nextState.progress);
   }
 
-  const isLastStep = progress.current >= progress.total;
+  const isLastStep = resolvedNext !== undefined && resolvedNext.status !== "in-progress";
   const domainKey = `diagnostic.domain.${question.domain}` as TranslationKey;
   const subSkillKey = `diagnostic.subSkill.${question.subSkill}` as TranslationKey;
   const difficultyKey = `diagnostic.difficulty.${question.difficulty}` as TranslationKey;
@@ -136,8 +153,16 @@ export function DiagnosticRunner({
       </div>
 
       <Card className={feedback && !feedback.isCorrect ? "animate-shake" : ""}>
-        <p className="text-xs text-[var(--ink-faint)] mb-2">{t("diagnostic.question", { current: progress.current, total: progress.total })}</p>
-        <h2 className="font-display text-xl mb-4">{question.prompt}</h2>
+        <p className="text-xs text-[var(--ink-faint)] mb-2">
+          {t("diagnostic.question", {
+            questionNumber: progress.questionNumber,
+            subSkillNumber: progress.subSkillNumber,
+            totalSubSkills: progress.totalSubSkills,
+          })}
+        </p>
+        <h2 className="font-display text-xl mb-4">
+          <MathText text={question.prompt} />
+        </h2>
 
         <div className="grid gap-2 mb-4">
           {question.options.map((opt) => {
@@ -159,7 +184,7 @@ export function DiagnosticRunner({
                         : "border-[var(--ink-soft)] hover:bg-[var(--accent-soft)]/40"
                 }`}
               >
-                {opt}
+                <MathText text={opt} />
               </button>
             );
           })}
@@ -174,14 +199,16 @@ export function DiagnosticRunner({
             {feedback.isCorrect ? <CheckIcon size={22} /> : <CrossIcon size={22} />}
             <div className="text-sm text-[var(--ink)]">
               <p className="font-display text-base mb-0.5">{feedback.isCorrect ? t("diagnostic.nice") : t("diagnostic.notQuite")}</p>
-              <p>{feedback.explanation}</p>
+              <p>
+                <MathText text={feedback.explanation} />
+              </p>
             </div>
           </div>
         )}
 
         {feedback ? (
-          <RoughButton onClick={next} fullWidth>
-            {isLastStep ? t("diagnostic.seeReport") : t("diagnostic.nextQuestion")}
+          <RoughButton onClick={next} disabled={advancing} fullWidth>
+            {advancing ? t("diagnostic.loading") : isLastStep ? t("diagnostic.seeReport") : t("diagnostic.nextQuestion")}
           </RoughButton>
         ) : (
           <RoughButton onClick={submitAnswer} disabled={!choice || submitting} fullWidth>

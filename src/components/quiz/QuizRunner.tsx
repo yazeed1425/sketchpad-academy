@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { RoughButton } from "@/components/ui/RoughButton";
 import { HeartsRow } from "@/components/ui/HeartsRow";
+import { MathText } from "@/components/ui/MathText";
 import { CheckIcon, CrossIcon } from "@/components/ui/icons";
 import { apiPost } from "@/lib/hooks/useApi";
 import { useTranslation } from "@/lib/i18n/LocaleProvider";
@@ -84,7 +85,9 @@ export function QuizRunner<TCompleteResult>({
   return (
     <Card className={feedback && !feedback.isCorrect ? "animate-shake" : ""}>
       <p className="text-xs text-[var(--ink-faint)] mb-2">{t("lesson.question", { current: index + 1, total: questions.length })}</p>
-      <h2 className="font-display text-xl mb-4">{question.prompt}</h2>
+      <h2 className="font-display text-xl mb-4">
+        <MathText text={question.prompt} />
+      </h2>
 
       {question.type === "FILL_BLANK" ? (
         <input
@@ -115,7 +118,7 @@ export function QuizRunner<TCompleteResult>({
                         : "border-[var(--ink-soft)] hover:bg-[var(--accent-soft)]/40"
                 }`}
               >
-                {opt}
+                <MathText text={opt} />
               </button>
             );
           })}
@@ -131,7 +134,11 @@ export function QuizRunner<TCompleteResult>({
           {feedback.isCorrect ? <CheckIcon size={22} /> : <CrossIcon size={22} />}
           <div className="text-sm text-[var(--ink)]">
             <p className="font-display text-base mb-0.5">{feedback.isCorrect ? t("lesson.nice") : t("lesson.notQuite")}</p>
-            {!feedback.isCorrect && <p>{feedback.explanation}</p>}
+            {!feedback.isCorrect && (
+              <p>
+                <MathText text={feedback.explanation} />
+              </p>
+            )}
           </div>
         </div>
       )}

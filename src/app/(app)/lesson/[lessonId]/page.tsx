@@ -7,7 +7,7 @@ import { RoughButton } from "@/components/ui/RoughButton";
 import { HeartBrokenIcon } from "@/components/ui/icons";
 import { QuizRunner, type QuizQuestion } from "@/components/quiz/QuizRunner";
 import { LessonSummary, type LessonCompleteResult } from "@/components/quiz/LessonSummary";
-import { LessonContentCard, type LessonContentSection } from "@/components/quiz/LessonContentCard";
+import { LessonContentCards, type LessonContent } from "@/components/quiz/LessonContentCard";
 import { apiPost, ApiError } from "@/lib/hooks/useApi";
 import { useProfile } from "@/lib/hooks/useProfile";
 import { useTranslation } from "@/lib/i18n/LocaleProvider";
@@ -16,7 +16,7 @@ interface StartResponse {
   attemptId: string;
   lessonTitle: string;
   pathId: string;
-  content: LessonContentSection[];
+  content: LessonContent;
   questions: QuizQuestion[];
 }
 
@@ -75,11 +75,7 @@ export default function LessonPage({ params }: { params: Promise<{ lessonId: str
     <div className="max-w-2xl mx-auto space-y-6">
       <div>
         <h1 className="font-display text-2xl mb-4">{state.data.lessonTitle}</h1>
-        <div className="space-y-3">
-          {state.data.content.map((section, i) => (
-            <LessonContentCard key={i} section={section} />
-          ))}
-        </div>
+        <LessonContentCards content={state.data.content} />
       </div>
 
       <div>

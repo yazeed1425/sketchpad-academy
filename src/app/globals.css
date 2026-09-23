@@ -133,10 +133,12 @@ html[lang="ar"] .font-display {
 
 /* KaTeX math is always LTR internally (digits/fractions read left-to-right) even when
    embedded inside RTL Arabic paragraphs — isolate it so the bidi algorithm doesn't reorder
-   or overlap it with the surrounding text. */
+   or overlap it with the surrounding text. Font size is capped so equations stay visually
+   consistent with the surrounding Arabic body text instead of ballooning past it. */
 .katex {
   direction: ltr;
   unicode-bidi: isolate;
+  font-size: 1.1rem;
 }
 .katex-display {
   direction: ltr;
