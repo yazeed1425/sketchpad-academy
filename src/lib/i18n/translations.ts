@@ -67,7 +67,6 @@ const en = {
   "tree.locked": "Complete the connected skills above to unlock this one.",
   "tree.bestScore": "Best score: {score}%",
   "tree.backToTree": "Back to skill tree",
-  "tree.start": "Start",
   "tree.guide": "Guide",
 
   "lesson.loadingLesson": "Loading lesson...",
@@ -124,6 +123,14 @@ const en = {
   "dashboard.takePlacementBody": "Take a short adaptive placement test and we'll set up your skill tree at exactly the right level.",
   "dashboard.takePlacement": "Take the placement test",
 
+  "diagnostic.choice.title": "Choose your learning plan",
+  "diagnostic.choice.body": "How would you like to start?",
+  "diagnostic.choice.comprehensive.title": "Comprehensive plan (from scratch)",
+  "diagnostic.choice.comprehensive.body": "A complete path that teaches and covers every Quantitative and Verbal GAT skill, step by step.",
+  "diagnostic.choice.comprehensive.cta": "Start the comprehensive plan",
+  "diagnostic.choice.comprehensive.generating": "Building your comprehensive plan...",
+  "diagnostic.choice.remedial.title": "Quick remedial plan (close the gaps)",
+  "diagnostic.choice.remedial.body": "A plan focused only on the skills your diagnostic shows you need to improve.",
   "diagnostic.intro.title": "Adaptive Placement Test",
   "diagnostic.intro.body":
     "A short, adaptive test covering Quantitative (arithmetic, algebra, geometry) and Verbal (analogies, contextual errors, reading comprehension) skills. Questions get harder or easier based on your answers — there's no penalty for wrong answers, so just do your best.",
@@ -132,6 +139,8 @@ const en = {
   "diagnostic.intro.point3": "We'll unlock and complete skills you've already mastered",
   "diagnostic.intro.start": "Start placement test",
   "diagnostic.intro.starting": "Starting...",
+  "diagnostic.completing.title": "Building your report...",
+  "diagnostic.completing.body": "We're evaluating your results and designing your personalized learning plan — this can take a moment.",
   "diagnostic.loading": "Loading...",
   "diagnostic.question": "Question {questionNumber} — Skill {subSkillNumber} of {totalSubSkills}",
   "diagnostic.timeLeft": "{seconds}s",
@@ -157,7 +166,6 @@ const en = {
   "diagnostic.report.title": "Your Skill-Gap Report",
   "diagnostic.report.subtitle": "Here's exactly where you stand — and where your skill tree now starts you off.",
   "diagnostic.report.overall": "Overall accuracy",
-  "diagnostic.report.aiSummary": "AI evaluation",
   "diagnostic.report.quantitative": "Quantitative",
   "diagnostic.report.verbal": "Verbal",
   "diagnostic.report.bonusXp": "+{xp} bonus XP from mastered skills",
@@ -236,7 +244,6 @@ const ar: Record<TranslationKey, string> = {
   "tree.locked": "أكمل المهارات المرتبطة أعلاه لفتح هذه المهارة.",
   "tree.bestScore": "أفضل نتيجة: {score}%",
   "tree.backToTree": "العودة إلى شجرة المهارات",
-  "tree.start": "ابدأ",
   "tree.guide": "الدليل",
 
   "lesson.loadingLesson": "جارٍ تحميل الدرس...",
@@ -293,6 +300,14 @@ const ar: Record<TranslationKey, string> = {
   "dashboard.takePlacementBody": "خذ اختبار تحديد مستوى قصير وتكيّفي، وبنجهز لك شجرة المهارات على المستوى المناسب بالضبط.",
   "dashboard.takePlacement": "ابدأ اختبار تحديد المستوى",
 
+  "diagnostic.choice.title": "اختر نوع خطة التعلم",
+  "diagnostic.choice.body": "كيف تحب تبدأ؟",
+  "diagnostic.choice.comprehensive.title": "خطة تأسيسية شاملة (من الصفر)",
+  "diagnostic.choice.comprehensive.body": "مسار متكامل يعلمك ويغطي جميع مهارات القدرات العامة الكمية واللفظية خطوة بخطوة.",
+  "diagnostic.choice.comprehensive.cta": "ابدأ الخطة الشاملة",
+  "diagnostic.choice.comprehensive.generating": "جارٍ إنشاء خطتك الشاملة...",
+  "diagnostic.choice.remedial.title": "خطة علاجية سريعة (سد الفجوات)",
+  "diagnostic.choice.remedial.body": "خطة مخصصة تركز فقط على نقاط الضعف والمهارات التي تحتاج فيها للتحسين بناءً على تشخيصك.",
   "diagnostic.intro.title": "اختبار تحديد المستوى التكيّفي",
   "diagnostic.intro.body":
     "اختبار قصير وتكيّفي يغطي القسم الكمي (الحساب، الجبر، الهندسة) والقسم اللفظي (التناظر اللفظي، الخطأ السياقي، استيعاب المقروء). الأسئلة تصعب أو تسهل حسب إجاباتك — ما فيه أي خصم على الإجابة الخاطئة، فقط أعطِ أفضل ما عندك.",
@@ -301,6 +316,8 @@ const ar: Record<TranslationKey, string> = {
   "diagnostic.intro.point3": "بنكمل المهارات اللي أتقنتها فعلاً ونفتح اللي بعدها",
   "diagnostic.intro.start": "ابدأ اختبار تحديد المستوى",
   "diagnostic.intro.starting": "جارٍ البدء...",
+  "diagnostic.completing.title": "جارٍ إعداد تقريرك...",
+  "diagnostic.completing.body": "نُقيّم نتيجتك ونصمم خطة تعلّمك الشخصية — قد يأخذ هذا بعض الوقت.",
   "diagnostic.loading": "جارٍ التحميل...",
   "diagnostic.question": "السؤال {questionNumber} — المهارة {subSkillNumber} من {totalSubSkills}",
   "diagnostic.timeLeft": "{seconds}ث",
@@ -326,7 +343,6 @@ const ar: Record<TranslationKey, string> = {
   "diagnostic.report.title": "تقرير الفجوات المهارية",
   "diagnostic.report.subtitle": "هذا وضعك بالضبط — ومن هنا بتبدأ شجرة مهاراتك الآن.",
   "diagnostic.report.overall": "الدقة الإجمالية",
-  "diagnostic.report.aiSummary": "تقييم الذكاء الاصطناعي",
   "diagnostic.report.quantitative": "كمي",
   "diagnostic.report.verbal": "لفظي",
   "diagnostic.report.bonusXp": "+{xp} نقطة خبرة إضافية من المهارات المتقنة",
@@ -341,7 +357,20 @@ const ar: Record<TranslationKey, string> = {
 
 export const translations: Record<Locale, Record<TranslationKey, string>> = { en, ar };
 
-export function formatTranslation(template: string, vars?: Record<string, string | number>): string {
-  if (!vars) return template;
-  return template.replace(/\{(\w+)\}/g, (match, key) => (key in vars ? String(vars[key]) : match));
+const ARABIC_INDIC_DIGITS = ["٠", "١", "٢", "٣", "٤", "٥", "٦", "٧", "٨", "٩"];
+
+/** Converts every ASCII digit in a string to its Arabic-Indic form — never applied inside math/LaTeX (MathText renders those separately, outside this translation layer). */
+function toArabicIndicDigits(text: string): string {
+  return text.replace(/[0-9]/g, (d) => ARABIC_INDIC_DIGITS[Number(d)]);
+}
+
+/** For a raw (non-translated) number shown directly in JSX — e.g. a rank or level pulled straight from an API response. */
+export function formatNumber(value: number | string, locale: Locale): string {
+  const text = String(value);
+  return locale === "ar" ? toArabicIndicDigits(text) : text;
+}
+
+export function formatTranslation(template: string, vars: Record<string, string | number> | undefined, locale: Locale): string {
+  const interpolated = vars ? template.replace(/\{(\w+)\}/g, (match, key) => (key in vars ? String(vars[key]) : match)) : template;
+  return locale === "ar" ? toArabicIndicDigits(interpolated) : interpolated;
 }

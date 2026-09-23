@@ -14,11 +14,23 @@ const components: Components = {
   strong: ({ children }) => <strong className="font-display">{children}</strong>,
 };
 
+// Gemini occasionally emits a bare LaTeX command (e.g. a whole option that's just
+// `\frac{1}{9}`, no surrounding $) despite the prompt rule — remark-math then never
+// recognizes it as math, and the raw source leaks straight to the screen. If a string has
+// no `$` at all but clearly contains LaTeX syntax, treat the whole thing as one math
+// expression instead of showing the user backslash-command soup.
+const LOOKS_LIKE_BARE_LATEX = /\\(frac|sqrt|cdot|times|div|le|ge|neq|pm|approx)\b|\^\{|_\{/;
+
+function ensureMathDelimited(text: string): string {
+  if (text.includes("$") || !LOOKS_LIKE_BARE_LATEX.test(text)) return text;
+  return `$${text}$`;
+}
+
 export function MathText({ text, className = "" }: { text: string; className?: string }) {
   return (
     <span className={className}>
       <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]} components={components}>
-        {text}
+        {ensureMathDelimited(text)}
       </ReactMarkdown>
     </span>
   );

@@ -9,6 +9,7 @@ import { QuizRunner, type QuizQuestion } from "@/components/quiz/QuizRunner";
 import { apiPost, ApiError } from "@/lib/hooks/useApi";
 import { useProfile } from "@/lib/hooks/useProfile";
 import { useTranslation } from "@/lib/i18n/LocaleProvider";
+import { formatNumber } from "@/lib/i18n/translations";
 import { LightbulbIcon } from "@/components/ui/icons";
 
 interface StartResponse {
@@ -28,7 +29,7 @@ export default function PracticePage() {
   );
   const [result, setResult] = useState<PracticeResult | null>(null);
   const { mutate: refreshProfile } = useProfile();
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
 
   useEffect(() => {
     let cancelled = false;
@@ -84,7 +85,7 @@ export default function PracticePage() {
 
       {result && (
         <Card className="text-center animate-pop-in">
-          <p className="font-display text-3xl mb-2">{result.scorePct}%</p>
+          <p className="font-display text-3xl mb-2">{formatNumber(result.scorePct, locale)}%</p>
           {result.practiceHeartRefilled ? (
             <>
               <p className="text-sm text-[var(--success)] mb-2">{t("practice.greatReview")}</p>

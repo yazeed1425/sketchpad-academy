@@ -72,14 +72,14 @@ export default function LessonPage({ params }: { params: Promise<{ lessonId: str
   if (result) return <LessonSummary result={result} pathId={state.data.pathId} />;
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <div className="w-full max-w-7xl mx-auto space-y-8 px-6 md:px-12 lg:px-16">
       <div>
-        <h1 className="font-display text-2xl mb-4">{state.data.lessonTitle}</h1>
+        <h1 className="font-display text-3xl mb-5">{state.data.lessonTitle}</h1>
         <LessonContentCards content={state.data.content} />
       </div>
 
       <div>
-        <h2 className="font-display text-lg mb-3">{t("lesson.testYourUnderstanding")}</h2>
+        <h2 className="font-display text-xl mb-4">{t("lesson.testYourUnderstanding")}</h2>
         <QuizRunner<LessonCompleteResult>
           attemptId={state.data.attemptId}
           questions={state.data.questions}

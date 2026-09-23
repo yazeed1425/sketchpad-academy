@@ -7,11 +7,12 @@ import { SkillIcon } from "@/components/ui/icons";
 import { useProfile } from "@/lib/hooks/useProfile";
 import { useBadges } from "@/lib/hooks/useGameData";
 import { useTranslation } from "@/lib/i18n/LocaleProvider";
+import { formatNumber } from "@/lib/i18n/translations";
 
 export default function ProfilePage() {
   const { profile, isLoading } = useProfile();
   const { badges } = useBadges();
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
 
   if (isLoading || !profile) return <p>{t("profile.loading")}</p>;
 
@@ -43,7 +44,7 @@ export default function ProfilePage() {
         <h2 className="font-display text-xl mb-3">
           {t("profile.badges")}{" "}
           <span className="text-sm text-[var(--ink-faint)] font-body">
-            ({earned.length}/{badges.length})
+            ({formatNumber(earned.length, locale)}/{formatNumber(badges.length, locale)})
           </span>
         </h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">

@@ -73,6 +73,14 @@ model ActivityDay {
 
 // ───────────────────────── Learning content ─────────────────────────
 
+// Chosen up front, before/instead of the diagnostic: COMPREHENSIVE covers the full GAT
+// curriculum regardless of diagnostic results, REMEDIAL is the existing gap-focused roadmap
+// built from diagnostic mastery levels.
+enum PlanType {
+  COMPREHENSIVE
+  REMEDIAL
+}
+
 model LearningPath {
   id          String @id @default(cuid())
   slug        String @unique
@@ -84,8 +92,9 @@ model LearningPath {
   // null = shared catalog path (Math Mastery, etc). Set = a personalized roadmap Gemini
   // generated for this one user from their diagnostic results — never shown to anyone else.
   userId         String?
-  user           User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  generatedByLlm Boolean @default(false)
+  user           User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  generatedByLlm Boolean   @default(false)
+  planType       PlanType? // set only on a personalized (userId != null) path
 
   milestones  Milestone[]
   skills      Skill[]

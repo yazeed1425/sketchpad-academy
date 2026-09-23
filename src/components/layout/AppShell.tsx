@@ -11,7 +11,7 @@ import { CompassIcon, FlameIcon, LightbulbIcon, BadgeIcon, ThumbUpIcon, type Ico
 import { HeartRegenTimer } from "@/components/dashboard/HeartRegenTimer";
 import { apiPost } from "@/lib/hooks/useApi";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
-import type { TranslationKey } from "@/lib/i18n/translations";
+import { formatNumber, type TranslationKey } from "@/lib/i18n/translations";
 
 const NAV: { href: string; key: TranslationKey; icon: (props: IconProps) => React.ReactElement }[] = [
   { href: "/dashboard", key: "nav.dashboard", icon: CompassIcon },
@@ -47,7 +47,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   className="border border-[var(--info)]/30 rounded-full w-9 h-9 flex items-center justify-center font-display text-sm bg-[var(--info-soft)] text-[var(--info)]"
                   title={t("dashboard.level", { level: profile.profile.level })}
                 >
-                  {profile.profile.level}
+                  {formatNumber(profile.profile.level, locale)}
                 </div>
                 <div className="w-28 sm:w-40">
                   <XpBar value={profile.profile.xpIntoLevel} max={profile.profile.xpForNextLevel} height={16} />
@@ -56,7 +56,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
               <div className="flex items-center gap-1.5 text-[var(--gold)] shrink-0 bg-[var(--gold-soft)] rounded-full px-3 py-1.5">
                 <FlameIcon size={18} />
-                <span className="font-display text-sm text-[var(--ink)]">{profile.profile.currentStreak}</span>
+                <span className="font-display text-sm text-[var(--ink)]">{formatNumber(profile.profile.currentStreak, locale)}</span>
               </div>
 
               <div className="flex items-center gap-2 shrink-0 bg-[var(--heart-soft)] rounded-full px-3 py-1.5">

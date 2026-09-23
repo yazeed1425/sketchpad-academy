@@ -27,7 +27,7 @@ export function LocaleProvider({ initialLocale, children }: { initialLocale: Loc
   }, []);
 
   const t = useCallback(
-    (key: TranslationKey, vars?: Record<string, string | number>) => formatTranslation(translations[locale][key], vars),
+    (key: TranslationKey, vars?: Record<string, string | number>) => formatTranslation(translations[locale][key], vars, locale),
     [locale]
   );
 

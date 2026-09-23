@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/Card";
 import { RoughButton } from "@/components/ui/RoughButton";
 import { StarIcon, LockIcon, ThumbUpIcon } from "@/components/ui/icons";
 import { useTranslation } from "@/lib/i18n/LocaleProvider";
-import type { TranslationKey } from "@/lib/i18n/translations";
+import { formatNumber, type TranslationKey } from "@/lib/i18n/translations";
 
 export interface DiagnosticSubSkillResult {
   domain: "QUANTITATIVE" | "VERBAL";
@@ -36,7 +36,7 @@ const MASTERY_STYLE: Record<DiagnosticSubSkillResult["mastery"], { bg: string; f
 };
 
 export function DiagnosticReport({ report }: { report: DiagnosticReportData }) {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
 
   return (
     <div className="max-w-2xl mx-auto space-y-4">
@@ -47,28 +47,21 @@ export function DiagnosticReport({ report }: { report: DiagnosticReportData }) {
 
       <Card className="text-center animate-pop-in">
         <p className="text-xs text-[var(--ink-soft)] mb-1">{t("diagnostic.report.overall")}</p>
-        <p className="font-display text-4xl mb-3">{report.overallAccuracyPct}%</p>
+        <p className="font-display text-4xl mb-3">{formatNumber(report.overallAccuracyPct, locale)}%</p>
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-[var(--accent-soft)] rounded-xl p-2.5">
             <p className="text-xs text-[var(--accent)]">{t("diagnostic.report.quantitative")}</p>
-            <p className="font-display text-lg text-[var(--accent)]">{report.quantitativeAccuracyPct}%</p>
+            <p className="font-display text-lg text-[var(--accent)]">{formatNumber(report.quantitativeAccuracyPct, locale)}%</p>
           </div>
           <div className="bg-[var(--info-soft)] rounded-xl p-2.5">
             <p className="text-xs text-[var(--info)]">{t("diagnostic.report.verbal")}</p>
-            <p className="font-display text-lg text-[var(--info)]">{report.verbalAccuracyPct}%</p>
+            <p className="font-display text-lg text-[var(--info)]">{formatNumber(report.verbalAccuracyPct, locale)}%</p>
           </div>
         </div>
         {report.bonusXp > 0 && (
           <p className="text-sm text-[var(--gold)] font-display mt-3">{t("diagnostic.report.bonusXp", { xp: report.bonusXp })}</p>
         )}
       </Card>
-
-      {report.overallSummary && (
-        <Card className="bg-[var(--info-soft)]">
-          <p className="text-xs font-display text-[var(--info)] mb-1">{t("diagnostic.report.aiSummary")}</p>
-          <p className="text-sm text-[var(--ink)]">{report.overallSummary}</p>
-        </Card>
-      )}
 
       {report.roadmapTitle && (
         <Card className="bg-[var(--success-soft)] text-center">
@@ -96,9 +89,8 @@ export function DiagnosticReport({ report }: { report: DiagnosticReportData }) {
                     </span>
                   </div>
                   <p className="text-xs text-[var(--ink-soft)] mt-0.5">
-                    {t("diagnostic.report.correctOf", { correct: s.correct, total: s.total })} · {s.accuracyPct}%
+                    {t("diagnostic.report.correctOf", { correct: s.correct, total: s.total })} · {formatNumber(s.accuracyPct, locale)}%
                   </p>
-                  {s.rationale && <p className="text-xs text-[var(--ink-soft)] mt-1">{s.rationale}</p>}
                 </div>
               </div>
             </Card>

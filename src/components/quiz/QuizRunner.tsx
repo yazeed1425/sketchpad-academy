@@ -83,7 +83,7 @@ export function QuizRunner<TCompleteResult>({
   }
 
   return (
-    <Card className={feedback && !feedback.isCorrect ? "animate-shake" : ""}>
+    <Card padding="p-6 md:p-8" className={feedback && !feedback.isCorrect ? "animate-shake" : ""}>
       <p className="text-xs text-[var(--ink-faint)] mb-2">{t("lesson.question", { current: index + 1, total: questions.length })}</p>
       <h2 className="font-display text-xl mb-4">
         <MathText text={question.prompt} />
@@ -98,7 +98,7 @@ export function QuizRunner<TCompleteResult>({
           className="w-full border border-[var(--border-primary)] rounded-[var(--radius-md)] px-3 py-2 bg-transparent mb-4 focus:outline-none focus:border-[var(--accent)]"
         />
       ) : (
-        <div className="grid gap-2 mb-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
           {question.options.map((opt) => {
             const isChosen = choice === opt;
             const isCorrectOpt = feedback && opt === feedback.correctAnswer;
@@ -108,7 +108,7 @@ export function QuizRunner<TCompleteResult>({
                 key={opt}
                 disabled={!!feedback}
                 onClick={() => setChoice(opt)}
-                className={`text-start px-4 py-2.5 rounded-xl border transition-colors ${
+                className={`text-start px-5 py-3 rounded-xl border transition-colors ${
                   isCorrectOpt
                     ? "border-[var(--success)] bg-[var(--success-soft)]"
                     : isWrongChosen

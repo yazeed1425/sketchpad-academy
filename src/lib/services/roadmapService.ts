@@ -1,18 +1,23 @@
 import { db } from "@/lib/db";
-import { generatePersonalizedRoadmap, type RoadmapEvaluationInput } from "@/lib/llm/gemini";
+import {
+  generatePersonalizedRoadmap,
+  generateComprehensiveRoadmap,
+  type RoadmapEvaluationInput,
+  type GeneratedRoadmap,
+} from "@/lib/llm/gemini";
 import { initializeSkillProgressForEnrollment, recordSkillScore } from "@/lib/services/skillService";
+import type { $Enums } from "@/generated/prisma/client";
 
 const LESSON_XP_DISCOUNT = 5;
 
 /**
- * Replaces the user's personalized roadmap with a fresh one Gemini designs from their latest
- * diagnostic results: a small skill tree (with real practice lessons) that starts them exactly
- * at their identified gaps. Any previous personalized roadmap for this user is deleted first —
- * one canonical AI roadmap per user, refreshed on every diagnostic retake.
+ * Persists a generated roadmap as the user's one personal learning path (milestones, skills,
+ * lessons, questions, prerequisites, enrollment) and initializes skill-tree progress. Any
+ * previous personalized roadmap for this user is deleted first — one canonical AI roadmap per
+ * user, refreshed every time they (re)generate one. Shared by both the remedial (diagnostic
+ * driven) and comprehensive (from-scratch) roadmap flows below.
  */
-export async function generateAndAssignPersonalizedPath(userId: string, evaluation: RoadmapEvaluationInput) {
-  const roadmap = await generatePersonalizedRoadmap(evaluation);
-
+async function createPersonalPathFromRoadmap(userId: string, roadmap: GeneratedRoadmap, planType: $Enums.PlanType) {
   await db.learningPath.deleteMany({ where: { userId } });
 
   const path = await db.learningPath.create({
@@ -24,6 +29,7 @@ export async function generateAndAssignPersonalizedPath(userId: string, evaluati
       order: -1,
       userId,
       generatedByLlm: true,
+      planType,
     },
   });
 
@@ -37,7 +43,6 @@ export async function generateAndAssignPersonalizedPath(userId: string, evaluati
 
   const skillIdByKey = new Map<string, string>();
   const xpRewardByKey = new Map<string, number>();
-  const masteredKeys: string[] = [];
   const tierColCounters = new Map<number, number>();
 
   for (const s of roadmap.skills) {
@@ -59,7 +64,6 @@ export async function generateAndAssignPersonalizedPath(userId: string, evaluati
     });
     skillIdByKey.set(s.key, skill.id);
     xpRewardByKey.set(s.key, xpReward);
-    if (s.alreadyMastered) masteredKeys.push(s.key);
 
     const lesson = await db.lesson.create({
       data: { skillId: skill.id, title: s.lessonTitle, order: 0, xpReward: Math.max(10, xpReward - LESSON_XP_DISCOUNT) },
@@ -90,6 +94,19 @@ export async function generateAndAssignPersonalizedPath(userId: string, evaluati
   await db.pathEnrollment.create({ data: { userId, pathId: path.id } });
   await initializeSkillProgressForEnrollment(userId, path.id);
 
+  return { path, skillIdByKey, xpRewardByKey };
+}
+
+/**
+ * Remedial plan: replaces the user's personalized roadmap with a fresh one Gemini designs from
+ * their latest diagnostic results, starting them exactly at their identified gaps. Skills the
+ * diagnostic already found mastered are auto-completed (with bonus XP) rather than re-taught.
+ */
+export async function generateAndAssignPersonalizedPath(userId: string, evaluation: RoadmapEvaluationInput) {
+  const roadmap = await generatePersonalizedRoadmap(evaluation);
+  const { path, skillIdByKey, xpRewardByKey } = await createPersonalPathFromRoadmap(userId, roadmap, "REMEDIAL");
+
+  const masteredKeys = roadmap.skills.filter((s) => s.alreadyMastered).map((s) => s.key);
   let bonusXp = 0;
   for (const key of masteredKeys) {
     const skillId = skillIdByKey.get(key);
@@ -99,4 +116,14 @@ export async function generateAndAssignPersonalizedPath(userId: string, evaluati
   }
 
   return { pathId: path.id, title: roadmap.title, bonusXp };
+}
+
+/**
+ * Comprehensive plan: assigns a full "from scratch" GAT curriculum, chosen instead of taking
+ * the diagnostic — nothing is pre-assessed, so every node starts unmastered/locked-by-tier.
+ */
+export async function generateAndAssignComprehensivePath(userId: string) {
+  const roadmap = await generateComprehensiveRoadmap();
+  const { path } = await createPersonalPathFromRoadmap(userId, roadmap, "COMPREHENSIVE");
+  return { pathId: path.id, title: roadmap.title, bonusXp: 0 };
 }

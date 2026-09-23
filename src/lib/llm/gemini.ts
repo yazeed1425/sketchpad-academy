@@ -89,7 +89,11 @@ const DIFFICULTY_LABEL_AR: Record<$Enums.DiagnosticDifficulty, string> = {
 // Shared across every prompt that may need to express math (question prompts, options,
 // explanations, lesson content) — renders via MathText (react-markdown + remark-math +
 // rehype-katex), never plain caret/slash notation which shows up as literal text.
-const MATH_FORMATTING_RULE = `قواعد صارمة لكتابة الرموز الرياضية: أي رمز أو رقم أو متغير رياضي (خصوصاً الأسس والكسور والجذور) يُكتب بصيغة LaTeX بين علامتي $ فقط داخل الجمل، مثل $x^2$ أو $\\frac{1}{2}$ أو $\\sqrt{9}$ أو $20\\%$ — ممنوع استخدام رمز ^ أو / أو أي نص عادي للأسس والكسور مطلقاً. لا تضع أي حرف أو كلمة عربية داخل علامتي $ أبداً — يُسمح داخلها فقط بأرقام ورموز ومتغيرات لاتينية وعمليات رياضية. لا تستخدم LaTeX في مواضيع لغوية بحتة لا تحتاجه.`;
+const MATH_FORMATTING_RULE = `قواعد صارمة لكتابة الرموز الرياضية: أي رمز أو رقم أو متغير رياضي (خصوصاً الأسس والكسور والجذور) يُكتب بصيغة LaTeX بين علامتي $ فقط داخل الجمل، مثل $س^2$ أو $\\frac{١}{٢}$ أو $\\sqrt{٩}$ أو $٢٠\\%$ — ممنوع استخدام رمز ^ أو / أو أي نص عادي للأسس والكسور مطلقاً.
+اكتب كل رقم داخل علامتي $ بالأرقام الهندية العربية (٠١٢٣٤٥٦٧٨٩) حصراً، ممنوع استخدام الأرقام اللاتينية (0123456789) داخل الرياضيات إطلاقاً.
+استخدم متغيرات عربية بدل اللاتينية: س بدلاً من x، وص بدلاً من y، وع بدلاً من z إذا احتجت متغيراً ثالثاً، وهكذا لأي متغير آخر تحتاجه.
+يُسمح داخل علامتي $ فقط بالأرقام الهندية والمتغيرات العربية المفردة (مثل س، ص، ع) ورموز العمليات الرياضية وأوامر LaTeX — ممنوع وضع أي كلمة أو جملة عربية كاملة (شرح أو وصف) داخل علامتي $، فقط الرموز والمتغيرات المفردة.
+لا تستخدم LaTeX في مواضيع لغوية بحتة لا تحتاجه.`;
 
 export interface GeneratedQuestion {
   prompt: string;
@@ -459,7 +463,12 @@ ${MATH_FORMATTING_RULE}
 أعد النتيجة بصيغة JSON فقط حسب المخطط المطلوب.`;
 
   const roadmap = await generateJson<GeneratedRoadmap>(prompt, ROADMAP_SCHEMA);
+  sanitizeRoadmap(roadmap);
+  return roadmap;
+}
 
+/** Drops dangling/self prerequisites, falls back invalid icons, and fixes correctAnswer/options drift — shared by both roadmap generators. */
+function sanitizeRoadmap(roadmap: GeneratedRoadmap): void {
   const validKeys = new Set(roadmap.skills.map((s) => s.key));
   for (const skill of roadmap.skills) {
     skill.prerequisites = skill.prerequisites.filter((k) => validKeys.has(k) && k !== skill.key);
@@ -471,6 +480,47 @@ ${MATH_FORMATTING_RULE}
       }
     }
   }
+}
 
+const COMPREHENSIVE_QUANTITATIVE_TOPICS = [
+  "الجبر والمعادلات",
+  "الأسس والجذور",
+  "الهندسة والمحيط والمساحات",
+  "زوايا المثلثات والمضلعات",
+  "النسب المئوية والكسور",
+  "المسائل الكلامية",
+  "الإحصاء والرسوم البيانية",
+  "المقارنات",
+  "الاحتمالات والتوافيق",
+];
+
+const COMPREHENSIVE_VERBAL_TOPICS = ["التناظر اللفظي", "إكمال الجمل", "الخطأ السياقي", "استيعاب المقروء والتحليل النصي", "المفردة المخالفة"];
+
+/**
+ * Designs a full "from scratch" GAT curriculum covering every required topic, ordered easy to
+ * hard — for a student who chose the comprehensive plan instead of the diagnostic-driven
+ * remedial one. No diagnostic input: nothing is pre-assessed, so every node starts unmastered.
+ */
+export async function generateComprehensiveRoadmap(): Promise<GeneratedRoadmap> {
+  const prompt = `أنت مصمم مناهج خبير في اختبار القدرات العامة (GAT) السعودي.
+صمّم خطة تعلّم تأسيسية شاملة "من الصفر" تغطي القسمين الكمي واللفظي بالكامل لطالب لم يخضع لأي تقييم مسبق — لا تفترض أنه متقن أي شيء.
+
+يجب أن تغطي الخطة كل موضوع من المواضيع التالية بعقدة واحدة على الأقل (والمواضيع الأوسع كالجبر والهندسة تستحق عقدتين متدرجتين: أساسي ثم متقدم):
+القسم الكمي: ${COMPREHENSIVE_QUANTITATIVE_TOPICS.join("، ")}.
+القسم اللفظي: ${COMPREHENSIVE_VERBAL_TOPICS.join("، ")}.
+
+المتطلبات:
+- من 18 إلى 26 عقدة مهارة (skills) إجمالاً، تغطي كل المواضيع أعلاه بلا استثناء — لا تُسقط أي موضوع.
+- alreadyMastered يجب أن تكون false لكل عقدة بلا استثناء (لا يوجد تقييم سابق).
+- رتّب المراحل (milestones) بتسلسل تدريجي منطقي من الأسهل للأصعب: ابدأ بأساسيات الحس العددي والمفردات اللغوية، ثم انتقل تدريجياً للمواضيع الأكثر تعقيداً (الجبر المتقدم، الهندسة التحليلية، استيعاب المقروء المركّب...)، وانتهِ بمرحلة تطبيقية شاملة. من 6 إلى 10 مراحل، كل مرحلة لموضوع واحد أو موضوعين مرتبطين ضمن نفس القسم.
+- لكل عقدة: key فريد بالإنجليزية (kebab-case)، عنوان ووصف بالعربية، milestoneTitle (اسم إحدى المراحل أعلاه بالضبط)، tier (رقم صف يبدأ من 0 ويعكس ترتيب المرحلة)، وقائمة prerequisites (مفاتيح عقد أخرى في نفس القائمة يجب إتقانها أولاً — عقد tier 0 غالباً بدون متطلبات سابقة).
+- لكل عقدة: درس واحد (lessonTitle) يحتوي على 2-3 أسئلة اختيار من متعدد بالعربية (4 خيارات، خيار صحيح واحد يطابق correctAnswer حرفياً، مع شرح موجز) تعلّم أساسيات ذلك الموضوع تحديداً.
+- لكل عقدة: اختر icon واحداً يناسب موضوعها من هذه القيم فقط: books (قراءة/نصوص/لغة)، bulb (مفاهيم عامة وأفكار)، search (تحليل/اكتشاف/تدقيق)، calculator (حساب/جبر/عمليات رياضية)، chart (مهارة ختامية أو تحدٍّ متقدم مركّب).
+- أعطِ الخطة عنواناً ووصفاً عاماً بالعربية (title, description) يعكسان أنها خطة تأسيسية شاملة من الصفر.
+${MATH_FORMATTING_RULE}
+أعد النتيجة بصيغة JSON فقط حسب المخطط المطلوب.`;
+
+  const roadmap = await generateJson<GeneratedRoadmap>(prompt, ROADMAP_SCHEMA);
+  sanitizeRoadmap(roadmap);
   return roadmap;
 }

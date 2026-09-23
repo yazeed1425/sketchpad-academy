@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/Card";
 import { useLeague } from "@/lib/hooks/useGameData";
 import { StarIcon } from "@/components/ui/icons";
 import { useTranslation } from "@/lib/i18n/LocaleProvider";
-import type { TranslationKey } from "@/lib/i18n/translations";
+import { formatNumber, type TranslationKey } from "@/lib/i18n/translations";
 
 const TIER_COLOR: Record<string, string> = {
   BRONZE: "var(--tier-bronze)",
@@ -15,7 +15,7 @@ const TIER_COLOR: Record<string, string> = {
 
 export default function LeaguesPage() {
   const { league, isLoading } = useLeague();
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
 
   if (isLoading || !league) return <p>{t("leagues.loading")}</p>;
 
@@ -59,7 +59,7 @@ export default function LeaguesPage() {
                         : "border-[var(--ink-soft)]"
                   }`}
                 >
-                  {m.rank}
+                  {formatNumber(m.rank, locale)}
                 </span>
                 <span className={`flex-1 ${m.isMe ? "font-display" : ""}`}>{m.name}</span>
                 <span className="text-sm text-[var(--ink-soft)]">{t("leagues.xp", { xp: m.weeklyXp })}</span>
