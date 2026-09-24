@@ -215,7 +215,7 @@ export async function startAttempt(userId: string, lessonId: string) {
     where: { id: lessonId },
     include: {
       questions: { where: { source: "CURRICULUM" }, orderBy: { order: "asc" } },
-      skill: { select: { pathId: true, title: true, description: true, sourceExcerpt: true } },
+      skill: { select: { pathId: true, title: true, description: true, sourceExcerpt: true, domainLabel: true } },
     },
   });
 
@@ -229,6 +229,7 @@ export async function startAttempt(userId: string, lessonId: string) {
     attemptId: attempt.id,
     lessonTitle: lesson.title,
     pathId: lesson.skill.pathId,
+    domainLabel: lesson.skill.domainLabel,
     content,
     questions: questions.map((q) => ({
       id: q.id,

@@ -17,6 +17,7 @@ export interface TreeSkillNode {
   status: "LOCKED" | "UNLOCKED" | "IN_PROGRESS" | "COMPLETED";
   bestScore: number;
   completedAt: string | null;
+  domainLabel: string | null;
 }
 
 export function useSkillTree(pathId: string) {

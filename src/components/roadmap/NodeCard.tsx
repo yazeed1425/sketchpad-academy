@@ -18,7 +18,7 @@ export function NodeCard({ skill }: { skill: TreeSkillNode }) {
   const isCompleted = skill.status === "COMPLETED";
   const isActive = skill.status === "UNLOCKED" || skill.status === "IN_PROGRESS";
   const domain = classifySkillDomain(skill.title);
-  const domainLabel = domain === "verbal" ? t("dashboard.verbal") : t("dashboard.quantitative");
+  const domainLabel = skill.domainLabel ?? (domain === "verbal" ? t("dashboard.verbal") : t("dashboard.quantitative"));
   const singleLesson = skill.lessons.length === 1 ? skill.lessons[0] : null;
 
   return (

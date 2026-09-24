@@ -18,6 +18,7 @@ interface StartResponse {
   attemptId: string;
   lessonTitle: string;
   pathId: string;
+  domainLabel: string | null;
   content: LessonContent;
   questions: QuizQuestion[];
 }
@@ -98,7 +99,7 @@ export default function LessonPage({ params }: { params: Promise<{ lessonId: str
   if (result) return <LessonSummary result={result} pathId={state.data.pathId} />;
 
   const domain = classifySkillDomain(state.data.lessonTitle);
-  const domainLabel = domain === "verbal" ? t("dashboard.verbal") : t("dashboard.quantitative");
+  const domainLabel = state.data.domainLabel ?? (domain === "verbal" ? t("dashboard.verbal") : t("dashboard.quantitative"));
 
   return (
     <div className="w-full max-w-5xl mx-auto">

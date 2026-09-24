@@ -4,7 +4,7 @@ export const LOCALE_COOKIE = "locale";
 export const DEFAULT_LOCALE: Locale = "en";
 
 const en = {
-  "app.name": "Sketchpad Academy",
+  "app.name": "Rushd",
   "app.tagline": "A gamified learning platform for high schoolers.",
   "lang.toggle": "العربية",
 
@@ -238,7 +238,7 @@ const en = {
 export type TranslationKey = keyof typeof en;
 
 const ar: Record<TranslationKey, string> = {
-  "app.name": "أكاديمية سكيتش باد",
+  "app.name": "رُشْد",
   "app.tagline": "منصة تعليمية مُحبَّبة للمرحلة الثانوية.",
   "lang.toggle": "English",
 

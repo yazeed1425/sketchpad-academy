@@ -464,6 +464,10 @@ export interface GeneratedRoadmapSkill {
   // topic (from CustomRoadmapEvaluationInput.topics) this skill was built from, so its excerpt
   // can be attached to the persisted Skill row for later lesson-content grounding.
   sourceTopicName?: string;
+  // Only set (and only meaningful) for custom-content roadmaps: a short Arabic subject/category
+  // label (one of a handful Gemini defines for the whole document) shown as this node's domain
+  // tag — the comprehensive plan's fixed quantitative/verbal split doesn't apply here.
+  domainLabel?: string;
 }
 
 export interface GeneratedRoadmap {
@@ -508,6 +512,7 @@ const ROADMAP_SCHEMA = {
           lessonTitle: { type: "STRING" },
           icon: { type: "STRING", enum: [...SKILL_ICON_KEYS] },
           sourceTopicName: { type: "STRING" },
+          domainLabel: { type: "STRING" },
         },
         required: ["key", "title", "description", "milestoneTitle", "tier", "alreadyMastered", "prerequisites", "lessonTitle", "icon"],
       },
@@ -850,6 +855,7 @@ ${input.topics.map((t, i) => `${i + 1}. ${t.topic}`).join("\n")}
 - قسّم الخطة إلى أسابيع دراسية متتالية (milestones) بتسلسل تدريجي منطقي من الأسهل للأصعب. كل أسبوع يحتوي على 3 إلى 6 عقد فرعية. عنوان كل مرحلة (milestoneTitle) يجب أن يبدأ بصيغة "الأسبوع N: " متبوعاً بوصف قصير لموضوعها، حيث N رقم تسلسلي يبدأ من 1.
 - لكل عقدة: key فريد بالإنجليزية (kebab-case)، عنوان ووصف بالعربية يعكسان تحديداً نقطة واحدة من القائمة أعلاه، milestoneTitle (اسم أحد الأسابيع أعلاه بالضبط)، tier (رقم صف يبدأ من 0 ويعكس ترتيب الأسبوع)، وقائمة prerequisites (مفاتيح عقد أخرى في نفس القائمة يجب إتقانها أولاً — عقد tier 0 غالباً بدون متطلبات سابقة).
 - لكل عقدة: sourceTopicName يجب أن يطابق بالضبط (نفس الأحرف) اسم إحدى النقاط في القائمة الرقمية أعلاه — هذا إلزامي لكل عقدة بلا استثناء، حتى لو انقسمت نقطة واحدة لعدة عقد (تحمل كلها نفس sourceTopicName).
+- عرّف أولاً من ٢ إلى ٤ أقسام/فئات موضوعية عريضة تغطي كل محتوى الملف (مثلاً لملف عن الأرشفة: "التصنيف والتنظيم"، "الوصف والتوثيق"، "الحفظ والصيانة" — أسماء توضيحية فعلية تعكس محتوى هذا الملف تحديداً، وليست هذه الأمثلة حرفياً). ثم لكل عقدة: domainLabel يجب أن يطابق بالضبط (نفس الأحرف) اسم أحد هذه الأقسام التي عرّفتها — إلزامي لكل عقدة بلا استثناء، مثل "كمي"/"لفظي" في اختبار القدرات لكن بأسماء تعكس مادة هذا الملف تحديداً لا القدرات.
 - لكل عقدة: عنوان درس واحد (lessonTitle) يصف تدريباً مكثفاً على أساسيات ذلك الموضوع تحديداً (لا تولّد أسئلة الدرس هنا، فقط عنوانه).
 - لكل عقدة: اختر icon واحداً يناسب موضوعها من هذه القيم فقط: books (قراءة/نصوص/لغة)، bulb (مفاهيم عامة وأفكار)، search (تحليل/اكتشاف/تدقيق)، calculator (حساب/أرقام/عمليات)، chart (مهارة ختامية أو تحدٍّ متقدم مركّب).
 - أعطِ الخطة عنواناً ووصفاً عاماً بالعربية (title, description) يعكسان أنها خطة مبنية على محتوى "${input.documentTitle}" ونتيجة تقييم الطالب.

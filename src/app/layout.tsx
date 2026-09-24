@@ -25,7 +25,7 @@ const arabicFont = Tajawal({
 });
 
 export const metadata: Metadata = {
-  title: "Sketchpad Academy",
+  title: "رُشْد | Rushd",
   description: "A gamified learning platform for high schoolers.",
 };
 

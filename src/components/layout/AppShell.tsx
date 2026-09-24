@@ -10,7 +10,6 @@ import { XpBar } from "@/components/ui/XpBar";
 import { LanguageToggle } from "@/components/ui/LanguageToggle";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import {
-  CompassIcon,
   FlameIcon,
   BadgeIcon,
   HomeIcon,
@@ -67,10 +66,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* Top nav bar */}
       <nav dir={locale === "ar" ? "rtl" : "ltr"} className="sticky top-0 z-40 bg-[var(--card-bg)] border-b border-[var(--border-secondary)]">
         <div className="max-w-[1440px] mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
-          <Link href="/dashboard" className="flex items-center gap-2 text-[var(--accent)] shrink-0">
-            <span className="rounded-[var(--radius-md)] w-8 h-8 flex items-center justify-center bg-[var(--accent)] text-white">
-              <CompassIcon size={18} />
-            </span>
+          <Link href="/dashboard" className="flex items-center gap-2 shrink-0">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo-icon.png" alt="" className="w-8 h-8 object-contain" />
             <span className="hidden sm:inline font-display text-base text-[var(--ink)]">{t("app.name")}</span>
           </Link>
 

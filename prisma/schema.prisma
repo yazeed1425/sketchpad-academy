@@ -147,6 +147,12 @@ model Skill {
   // (which has no relevant content for arbitrary uploaded material) — see quizService.ts.
   sourceExcerpt String?
 
+  // Set only for skills generated from a CUSTOM plan: a short Arabic subject/category label
+  // (2-4 words, one of a handful Gemini defines for the whole document) shown as this skill's
+  // domain tag in the UI, in place of the Qudurat-specific quantitative/verbal split which is
+  // meaningless for arbitrary uploaded material — see generateCustomRoadmap.
+  domainLabel String?
+
   // Layout hints for the hand-drawn skill tree canvas (tree is non-linear / branching).
   tier Int // vertical row, 0-indexed
   col  Int // horizontal slot within the row

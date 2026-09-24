@@ -174,7 +174,31 @@ export async function getCustomDiagnosticState(userId: string, attemptId: string
 
   const avoidPrompts = attempt.responses.filter((r) => r.topic === step.topic).map((r) => r.prompt);
   const order = attempt.responses.length;
-  const response = await serveStep(attemptId, step, avoidPrompts, order);
+  let response;
+  try {
+    response = await serveStep(attemptId, step, avoidPrompts, order);
+  } catch (err) {
+    // Two concurrent GETs (e.g. a network retry racing the original request) can both pass the
+    // "no pending row yet" check above and then both try to serve/persist the same order — the
+    // loser hits this unique constraint instead of silently duplicating a question. Treat it as
+    // "someone else already served this step": re-fetch and return whatever is now pending.
+    if ((err as { code?: string }).code === "P2002") {
+      const retryAttempt = await db.customDiagnosticAttempt.findUniqueOrThrow({
+        where: { id: attemptId },
+        include: { responses: { orderBy: { order: "asc" } } },
+      });
+      const retryPending = retryAttempt.responses.find((r) => r.isCorrect === null);
+      if (retryPending) {
+        return {
+          status: "in-progress" as const,
+          attemptId,
+          progress: { questionNumber: retryPending.order + 1, topicCount: topics.length } satisfies CustomDiagnosticProgress,
+          question: toView(retryPending),
+        };
+      }
+    }
+    throw err;
+  }
 
   prefetchSpeculativeCandidates(
     attemptId,

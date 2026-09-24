@@ -1,20 +1,39 @@
 "use client";
 
 import { Card } from "@/components/ui/Card";
-import { TrendingUpIcon, HashIcon, BookIcon } from "@/components/ui/icons";
+import { TrendingUpIcon, HashIcon, BookIcon, TargetIcon, LightbulbIcon } from "@/components/ui/icons";
 import { classifySkillDomain } from "@/lib/skillDomain";
 import type { TreeSkillNode } from "@/lib/hooks/useSkillTree";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 import { formatNumber } from "@/lib/i18n/translations";
 
+// Rotated across custom-plan domain labels (a dynamic 2-4 count, unlike the fixed quantitative/
+// verbal duality), so each still gets a distinct icon/color pairing.
+const PALETTE = [
+  { Icon: HashIcon, color: "var(--accent)", bg: "var(--accent-soft)" },
+  { Icon: BookIcon, color: "var(--info)", bg: "var(--info-soft)" },
+  { Icon: TargetIcon, color: "var(--success)", bg: "var(--success-soft)" },
+  { Icon: LightbulbIcon, color: "var(--gold)", bg: "var(--gold-soft)" },
+];
+
 export function SubjectProgressCard({ nodes }: { nodes: TreeSkillNode[] }) {
   const { t, locale } = useLocale();
 
-  const groups = [
-    { key: "quantitative" as const, label: t("dashboard.quantitative"), Icon: HashIcon, color: "var(--accent)", bg: "var(--accent-soft)" },
-    { key: "verbal" as const, label: t("dashboard.verbal"), Icon: BookIcon, color: "var(--info)", bg: "var(--info-soft)" },
-  ].map((g) => {
-    const inGroup = nodes.filter((n) => classifySkillDomain(n.title) === g.key);
+  // Custom-content plans carry their own domain labels (defined per-document by the roadmap
+  // generator) instead of the Qudurat-specific quantitative/verbal split, which is meaningless
+  // for arbitrary uploaded material.
+  const customLabels = [...new Set(nodes.map((n) => n.domainLabel).filter((l): l is string => !!l))];
+
+  const groups = (
+    customLabels.length > 0
+      ? customLabels.map((label, i) => ({ key: label, label, ...PALETTE[i % PALETTE.length] }))
+      : [
+          { key: "quantitative", label: t("dashboard.quantitative"), ...PALETTE[0] },
+          { key: "verbal", label: t("dashboard.verbal"), ...PALETTE[1] },
+        ]
+  ).map((g) => {
+    const inGroup =
+      customLabels.length > 0 ? nodes.filter((n) => n.domainLabel === g.key) : nodes.filter((n) => classifySkillDomain(n.title) === g.key);
     const done = inGroup.filter((n) => n.status === "COMPLETED").length;
     const pct = inGroup.length > 0 ? Math.round((done / inGroup.length) * 100) : 0;
     return { ...g, pct, done, total: inGroup.length };
@@ -34,8 +53,8 @@ export function SubjectProgressCard({ nodes }: { nodes: TreeSkillNode[] }) {
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between mb-1">
-                <span className="text-sm text-[var(--ink-soft)]">{g.label}</span>
-                <span className="text-xs font-semibold text-[var(--ink)]">{formatNumber(g.pct, locale)}{locale === "ar" ? "٪" : "%"}</span>
+                <span className="text-sm text-[var(--ink-soft)] truncate">{g.label}</span>
+                <span className="text-xs font-semibold text-[var(--ink)] shrink-0">{formatNumber(g.pct, locale)}{locale === "ar" ? "٪" : "%"}</span>
               </div>
               <div className="h-1.5 rounded-full bg-[var(--border-secondary)] overflow-hidden">
                 <div className="h-full rounded-full transition-[width] duration-700" style={{ width: `${g.pct}%`, background: g.color }} />

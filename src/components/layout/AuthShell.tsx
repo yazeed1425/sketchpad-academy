@@ -2,7 +2,6 @@
 
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { LanguageToggle } from "@/components/ui/LanguageToggle";
-import { CompassIcon } from "@/components/ui/icons";
 import { useTranslation } from "@/lib/i18n/LocaleProvider";
 
 export function AuthShell({ children }: { children: React.ReactNode }) {
@@ -25,11 +24,9 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
           <ThemeToggle />
           <LanguageToggle />
         </div>
-        <div className="flex items-center gap-2.5 justify-center mb-6">
-          <span className="bg-[var(--accent-soft)] text-[var(--accent)] rounded-2xl p-2">
-            <CompassIcon size={28} />
-          </span>
-          <h1 className="font-display text-3xl text-[var(--ink)]">{t("app.name")}</h1>
+        <div className="flex justify-center mb-6">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.png" alt={t("app.name")} className="h-28 w-auto" />
         </div>
         {children}
       </div>
