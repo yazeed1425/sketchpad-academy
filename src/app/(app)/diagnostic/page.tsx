@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { RoughButton } from "@/components/ui/RoughButton";
-import { TargetIcon, CheckIcon, ClockIcon } from "@/components/ui/icons";
+import { TargetIcon, CheckIcon, ClockIcon, FileTextIcon } from "@/components/ui/icons";
 import { DiagnosticRunner, type DiagnosticQuestionView } from "@/components/diagnostic/DiagnosticRunner";
 import { DiagnosticReport, type DiagnosticReportData } from "@/components/diagnostic/DiagnosticReport";
 import { apiPost } from "@/lib/hooks/useApi";
@@ -103,31 +104,61 @@ export default function DiagnosticPage() {
   }
 
   return (
-    <Card className="max-w-lg mx-auto text-center">
-      <span className="inline-flex bg-[var(--accent-soft)] text-[var(--accent)] rounded-2xl p-3 mb-3">
-        <TargetIcon size={30} />
-      </span>
-      <h1 className="font-display text-2xl mb-2">{t("diagnostic.intro.title")}</h1>
-      <p className="text-sm text-[var(--ink-soft)] mb-4">{t("diagnostic.intro.body")}</p>
+    <div className="max-w-3xl mx-auto grid sm:grid-cols-2 gap-4 items-stretch">
+      <Card className="text-center flex flex-col">
+        <span className="inline-flex bg-[var(--accent-soft)] text-[var(--accent)] rounded-2xl p-3 mb-3 mx-auto">
+          <TargetIcon size={30} />
+        </span>
+        <h1 className="font-display text-xl mb-2">{t("diagnostic.intro.title")}</h1>
+        <p className="text-sm text-[var(--ink-soft)] mb-4">{t("diagnostic.intro.body")}</p>
 
-      <ul className="text-sm text-start space-y-2 mb-5 max-w-xs mx-auto">
-        <li className="flex items-center gap-2">
-          <ClockIcon size={16} className="text-[var(--accent)] shrink-0" />
-          {t("diagnostic.intro.point1", { count: MAX_TOTAL_QUESTIONS, minutes: Math.round((MAX_TOTAL_QUESTIONS * TIME_LIMIT_SEC) / 60) })}
-        </li>
-        <li className="flex items-center gap-2">
-          <CheckIcon size={16} className="text-[var(--success)] shrink-0" />
-          {t("diagnostic.intro.point2")}
-        </li>
-        <li className="flex items-center gap-2">
-          <CheckIcon size={16} className="text-[var(--success)] shrink-0" />
-          {t("diagnostic.intro.point3")}
-        </li>
-      </ul>
+        <ul className="text-sm text-start space-y-2 mb-5 max-w-xs mx-auto">
+          <li className="flex items-center gap-2">
+            <ClockIcon size={16} className="text-[var(--accent)] shrink-0" />
+            {t("diagnostic.intro.point1", { count: MAX_TOTAL_QUESTIONS, minutes: Math.round((MAX_TOTAL_QUESTIONS * TIME_LIMIT_SEC) / 60) })}
+          </li>
+          <li className="flex items-center gap-2">
+            <CheckIcon size={16} className="text-[var(--success)] shrink-0" />
+            {t("diagnostic.intro.point2")}
+          </li>
+          <li className="flex items-center gap-2">
+            <CheckIcon size={16} className="text-[var(--success)] shrink-0" />
+            {t("diagnostic.intro.point3")}
+          </li>
+        </ul>
 
-      <RoughButton onClick={handleStart} disabled={state.phase === "starting"} fullWidth>
-        {state.phase === "starting" ? t("diagnostic.intro.starting") : t("diagnostic.intro.start")}
-      </RoughButton>
-    </Card>
+        <RoughButton onClick={handleStart} disabled={state.phase === "starting"} fullWidth className="mt-auto">
+          {state.phase === "starting" ? t("diagnostic.intro.starting") : t("diagnostic.intro.start")}
+        </RoughButton>
+      </Card>
+
+      <Card className="text-center flex flex-col">
+        <div className="flex items-start justify-between mb-3">
+          <span className="inline-flex bg-[var(--info-soft)] text-[var(--info)] rounded-2xl p-3">
+            <FileTextIcon size={30} />
+          </span>
+          <span className="badge-brand">{t("diagnostic.intro.customOption.badge")}</span>
+        </div>
+        <h1 className="font-display text-xl mb-2">{t("diagnostic.intro.customOption.title")}</h1>
+        <p className="text-sm text-[var(--ink-soft)] mb-4">{t("diagnostic.intro.customOption.body")}</p>
+
+        <ul className="text-sm text-start space-y-2 mb-5 max-w-xs mx-auto">
+          <li className="flex items-center gap-2">
+            <CheckIcon size={16} className="text-[var(--success)] shrink-0" />
+            {t("diagnostic.intro.customOption.point1")}
+          </li>
+          <li className="flex items-center gap-2">
+            <CheckIcon size={16} className="text-[var(--success)] shrink-0" />
+            {t("diagnostic.intro.customOption.point2")}
+          </li>
+        </ul>
+
+        <Link href="/diagnostic/custom" className="mt-auto">
+          <RoughButton variant="secondary" fullWidth>
+            {t("diagnostic.intro.customOption.cta")}
+          </RoughButton>
+        </Link>
+      </Card>
+    </div>
   );
 }

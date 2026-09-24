@@ -38,7 +38,7 @@ export interface DiagnosticResponseSummary {
 
 const DIFFICULTY_LADDER: Difficulty[] = ["EASY", "MEDIUM", "HARD"];
 
-function nextDifficulty(previousDifficulty: Difficulty, previousWasCorrect: boolean): Difficulty {
+export function nextDifficulty(previousDifficulty: Difficulty, previousWasCorrect: boolean): Difficulty {
   const level = DIFFICULTY_LADDER.indexOf(previousDifficulty);
   const nextLevel = Math.min(DIFFICULTY_LADDER.length - 1, Math.max(0, level + (previousWasCorrect ? 1 : -1)));
   return DIFFICULTY_LADDER[nextLevel];

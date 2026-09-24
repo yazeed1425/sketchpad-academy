@@ -23,3 +23,11 @@ export async function apiPost<T>(url: string, data?: unknown): Promise<T> {
   if (!res.ok) throw new ApiError(body.error ?? "Request failed", res.status);
   return body as T;
 }
+
+/** Like apiPost, but for multipart/form-data (file uploads) — no Content-Type header, the browser sets the multipart boundary. */
+export async function apiPostForm<T>(url: string, formData: FormData): Promise<T> {
+  const res = await fetch(url, { method: "POST", body: formData });
+  const body = await res.json();
+  if (!res.ok) throw new ApiError(body.error ?? "Request failed", res.status);
+  return body as T;
+}

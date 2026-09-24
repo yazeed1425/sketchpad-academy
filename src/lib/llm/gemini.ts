@@ -29,12 +29,16 @@ function fixUnescapedLatexBackslashes(rawText: string): string {
   return rawText.replace(/(?<!\\)\\([tfnrb])/g, "\\\\$1");
 }
 
-async function generateJson<T>(prompt: string, responseSchema: object): Promise<T> {
+async function generateJson<T>(
+  prompt: string,
+  responseSchema: object,
+  extraParts: { inlineData: { mimeType: string; data: string } }[] = []
+): Promise<T> {
   const res = await fetch(`${API_BASE}/${model()}:generateContent?key=${apiKey()}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      contents: [{ role: "user", parts: [{ text: prompt }, ...extraParts] }],
       generationConfig: { responseMimeType: "application/json", responseSchema },
     }),
   });
@@ -323,34 +327,48 @@ const LESSON_CONTENT_SCHEMA = {
 /**
  * Generates the explanatory lesson content shown before its quiz, in Arabic Markdown+LaTeX,
  * as a strict {concept, example, common_mistake} JSON contract. Called once per lesson and
- * cached. When `reference` is supplied (a real question pulled via RAG from the Supabase GAT
- * question bank), the example is grounded in it instead of invented from scratch.
+ * cached. Exactly one grounding source is normally supplied:
+ * - `reference`: a real question pulled via RAG from the Supabase GAT question bank (Qudurat
+ *   skills only) — the example is built on it instead of invented from scratch.
+ * - `sourceExcerpt`: a text excerpt from a document the student uploaded themselves (custom
+ *   skills only, see Skill.sourceExcerpt) — the WHOLE lesson (not just the example) must be
+ *   grounded in it, since a Qudurat-flavored explanation would be actively wrong for arbitrary
+ *   uploaded material (e.g. a biology or history document).
  */
 export async function generateLessonContent(params: {
   title: string;
   description: string;
   reference?: LessonReference;
+  sourceExcerpt?: string;
 }): Promise<LessonContent> {
   const referenceBlock = params.reference
     ? `\nسؤال مرجعي حقيقي من بنك أسئلة اختبار القدرات لهذا الموضوع تحديداً — استخدمه كأساس لقسم example (وسّعه واشرحه خطوة بخطوة)، ولا تخترع مسألة بديلة:\nنص السؤال: "${params.reference.question}"\nالحل/الشرح المرجعي: "${params.reference.explanation}"\n`
     : "";
 
-  const prompt = `أنت معلم قدرات سعودي محترف (GAT) وخبير متمرّس تحديداً في مادة هذا الدرس — حدد أولاً التخصص الدقيق (رياضيات، جبر، هندسة، لغة عربية، استيعاب مقروء، تناظر لفظي... إلخ) من عنوان ووصف الدرس أدناه، واشرح بصفتك ذلك الخبير بالضبط، لا معلّماً عاماً. مهمتك شرح الدرس بأسلوب بصري ومبسّط ومباشر موجّه لطالب ثانوي، بدقة متناهية ودون أي مقدمات أو جمل تحفيزية فارغة (مثل "أهلاً بك"، "يا بطل"، "في رحلتك"، "تخيل معي"، "دعنا نستكشف"). كل جملة يجب أن تحمل معلومة أو قاعدة أو رقماً أو خطوة حل فعلية.
+  const persona = params.sourceExcerpt
+    ? `أنت معلّم خبير في مادة هذا الدرس تحديداً — حدد التخصص الدقيق من عنوان الدرس والمقتطف المرجعي أدناه (وليس من أي افتراض آخر) واشرح بصفتك ذلك الخبير بالضبط.`
+    : `أنت معلم قدرات سعودي محترف (GAT) وخبير متمرّس تحديداً في مادة هذا الدرس — حدد أولاً التخصص الدقيق (رياضيات، جبر، هندسة، لغة عربية، استيعاب مقروء، تناظر لفظي... إلخ) من عنوان ووصف الدرس أدناه، واشرح بصفتك ذلك الخبير بالضبط، لا معلّماً عاماً.`;
+
+  const sourceExcerptBlock = params.sourceExcerpt
+    ? `\nمقتطف مرجعي حقيقي من محتوى دراسي رفعه الطالب بنفسه — اشرح الدرس بالاعتماد حصراً على الحقائق والمفاهيم الواردة فيه، ولا تخترع معلومات خارجه ولا تفترض أنه اختبار قدرات:\n"""\n${params.sourceExcerpt}\n"""\n`
+    : "";
+
+  const prompt = `${persona} مهمتك شرح الدرس بأسلوب بصري ومبسّط ومباشر موجّه لطالب ثانوي، بدقة متناهية ودون أي مقدمات أو جمل تحفيزية فارغة (مثل "أهلاً بك"، "يا بطل"، "في رحلتك"، "تخيل معي"، "دعنا نستكشف"). كل جملة يجب أن تحمل معلومة أو قاعدة أو رقماً أو خطوة حل فعلية.
 
 عنوان الدرس: "${params.title}"
 وصف الدرس: "${params.description}"
-${referenceBlock}
+${referenceBlock}${sourceExcerptBlock}
 أعد كائن JSON واحد بالضبط بهذا الشكل الصارم، بحقوله التالية بالضبط:
 
 - concept.title: عنوان قصير جداً مثل "💡 المفهوم والقاعدة الأساسية".
 - concept.explanation_points: من نقطتين إلى ثلاث نقاط قصيرة جداً (أقل من 10 كلمات لكل نقطة) تشرح المفهوم والاستراتيجية.
-- concept.formula: القانون الأساسي بصيغة LaTeX فقط، **بدون** علامتي $ أو $$ حوله (سيُعرض في صندوق مستقل تلقائياً)، مثل: \\frac{a}{b}
+- concept.formula: ${params.sourceExcerpt ? "قانون أو معادلة أساسية بصيغة LaTeX إن وجدت في المقتطف، وإلا اتركه نصاً فارغاً" : "القانون الأساسي"} بصيغة LaTeX فقط، **بدون** علامتي $ أو $$ حوله (سيُعرض في صندوق مستقل تلقائياً)، مثل: \\frac{a}{b}
 - example.title: عنوان قصير مثل "📝 مثال توضيحي واستراتيجية الحل".
-- example.question: ${params.reference ? "نص المسألة المرجعية أعلاه، حرفياً أو بصياغة مكافئة مبسطة لطالب ثانوي" : "مسألة واقعية بأسلوب تجميعات اختبار القدرات، بأرقام حقيقية وليست افتراضية"}.
+- example.question: ${params.reference ? "نص المسألة المرجعية أعلاه، حرفياً أو بصياغة مكافئة مبسطة لطالب ثانوي" : params.sourceExcerpt ? "سؤال أو مثال واقعي مبني حصراً على حقائق المقتطف أعلاه" : "مسألة واقعية بأسلوب تجميعات اختبار القدرات، بأرقام حقيقية وليست افتراضية"}.
 - example.steps: قائمة من عنصرين إلى أربعة عناصر نصية، كل عنصر يبدأ بـ "الخطوة N:" ثم شرح مختصر مع أي معادلة بصيغة $...$ عند الحاجة.
 - example.pro_tip: استراتيجية حل سريع (أقل من 30 ثانية) بصيغة جملة واحدة تبدأ بـ "💡".
 - common_mistake.title: عنوان قصير مثل "⚠️ خطأ شائع وتجنبه".
-- common_mistake.mistake: أكثر خطأ فعلي يقع فيه الطلاب بهذا الموضوع تحديداً في اختبار القدرات، جملة واحدة.
+- common_mistake.mistake: أكثر خطأ فعلي يقع فيه الطلاب بهذا الموضوع تحديداً${params.sourceExcerpt ? "" : " في اختبار القدرات"}، جملة واحدة.
 - common_mistake.correction: كيفية تجنب هذا الخطأ مباشرة، جملة واحدة.
 
 ${MATH_FORMATTING_RULE}
@@ -442,6 +460,10 @@ export interface GeneratedRoadmapSkill {
   prerequisites: string[];
   lessonTitle: string;
   icon: SkillIconKey;
+  // Only set (and only meaningful) for custom-content roadmaps: the exact name of the source
+  // topic (from CustomRoadmapEvaluationInput.topics) this skill was built from, so its excerpt
+  // can be attached to the persisted Skill row for later lesson-content grounding.
+  sourceTopicName?: string;
 }
 
 export interface GeneratedRoadmap {
@@ -485,6 +507,7 @@ const ROADMAP_SCHEMA = {
           prerequisites: { type: "ARRAY", items: { type: "STRING" } },
           lessonTitle: { type: "STRING" },
           icon: { type: "STRING", enum: [...SKILL_ICON_KEYS] },
+          sourceTopicName: { type: "STRING" },
         },
         required: ["key", "title", "description", "milestoneTitle", "tier", "alreadyMastered", "prerequisites", "lessonTitle", "icon"],
       },
@@ -632,6 +655,204 @@ ${masteryGroupLines}
 - لكل عقدة: عنوان درس واحد (lessonTitle) يصف تدريباً مكثفاً على أساسيات ذلك الموضوع تحديداً (لا تولّد أسئلة الدرس هنا، فقط عنوانه — الأسئلة تُنشأ لاحقاً عند فتح الدرس فعلياً).
 - لكل عقدة: اختر icon واحداً يناسب موضوعها من هذه القيم فقط: books (قراءة/نصوص/لغة)، bulb (مفاهيم عامة وأفكار)، search (تحليل/اكتشاف/تدقيق)، calculator (حساب/جبر/عمليات رياضية)، chart (مهارة ختامية أو تحدٍّ متقدم مركّب). ملاحظة: العقد المقفلة (تعتمد على متطلبات لم تُتقَن بعد) والعقد المتقنة مسبقاً تُعرض بشارتها الخاصة بغض النظر عن icon، فلا داعي لمراعاة ذلك.
 - أعطِ الخطة عنواناً ووصفاً عاماً بالعربية (title, description) يعكسان أنها خطة تأسيسية شاملة مبنية على نتيجة تقييم الطالب.
+${MATH_FORMATTING_RULE}
+أعد النتيجة بصيغة JSON فقط حسب المخطط المطلوب.`;
+
+  const roadmap = await generateJson<GeneratedRoadmap>(prompt, ROADMAP_SCHEMA);
+  sanitizeRoadmap(roadmap);
+  return roadmap;
+}
+
+// ───────────────────────── Custom-content adaptive placement ─────────────────────────
+// A second placement flow: the student uploads a document (PDF or image), Gemini reads it
+// directly (inline base64, no parsing library — Gemini natively understands both formats) and
+// extracts a dynamic set of topics, each with a grounding text excerpt. Every later call in
+// this flow (question generation, mastery evaluation, roadmap design) uses only that cached
+// excerpt text — the file bytes are sent to Gemini exactly once, here.
+
+export interface CustomTopic {
+  name: string;
+  excerpt: string;
+}
+
+export interface DocumentAnalysis {
+  documentTitle: string;
+  topics: CustomTopic[];
+}
+
+const MIN_CUSTOM_TOPICS = 5;
+const MAX_CUSTOM_TOPICS = 8;
+
+const DOCUMENT_ANALYSIS_SCHEMA = {
+  type: "OBJECT",
+  properties: {
+    documentTitle: { type: "STRING" },
+    topics: {
+      type: "ARRAY",
+      items: {
+        type: "OBJECT",
+        properties: { name: { type: "STRING" }, excerpt: { type: "STRING" } },
+        required: ["name", "excerpt"],
+      },
+      minItems: MIN_CUSTOM_TOPICS,
+      maxItems: MAX_CUSTOM_TOPICS,
+    },
+  },
+  required: ["documentTitle", "topics"],
+};
+
+/** Reads the attached file once and extracts a dynamic topic list to build an adaptive test and roadmap from. */
+export async function analyzeDocument(params: { mimeType: string; base64Data: string }): Promise<DocumentAnalysis> {
+  const prompt = `اقرأ محتوى الملف المرفق بالكامل بعناية (قد يكون صفحات كتاب، شرائح عرض تقديمي، أو ملخصاً دراسياً بأي مادة أو لغة).
+استخرج منه عنواناً قصيراً يصف موضوع الملف عموماً (documentTitle)، ثم بين ${MIN_CUSTOM_TOPICS} و ${MAX_CUSTOM_TOPICS} مواضيع فرعية مستقلة تغطي أهم ما ورد في الملف.
+لكل موضوع:
+- name: عنوان قصير (٣-٦ كلمات) لهذا الموضوع الفرعي.
+- excerpt: ملخص نصي ذاتي الاكتفاء من ١٥٠ إلى ٣٠٠ كلمة يغطي أهم الحقائق والمفاهيم والتفاصيل الفعلية لهذا الموضوع من الملف، بحيث يمكن توليد أسئلة اختبار دقيقة منه لاحقاً دون الرجوع للملف الأصلي مطلقاً — لا تكتفِ بوصف عام، انقل الحقائق والأرقام والتعريفات الفعلية الواردة في الملف.
+اكتب كل شيء باللغة العربية الفصحى بغض النظر عن لغة الملف الأصلية.
+${MATH_FORMATTING_RULE}
+أعد النتيجة بصيغة JSON فقط حسب المخطط المطلوب، بدون أي نص إضافي.`;
+
+  const result = await generateJson<DocumentAnalysis>(prompt, DOCUMENT_ANALYSIS_SCHEMA, [
+    { inlineData: { mimeType: params.mimeType, data: params.base64Data } },
+  ]);
+  if (result.topics.length < MIN_CUSTOM_TOPICS) throw new Error("Gemini extracted too few topics from the uploaded document");
+  return result;
+}
+
+/** Generates one fresh multiple-choice question grounded strictly in a cached topic excerpt — no file resent. */
+export async function generateCustomQuestion(params: {
+  topic: string;
+  excerpt: string;
+  difficulty: $Enums.DiagnosticDifficulty;
+  avoidPrompts: string[];
+}): Promise<GeneratedQuestion> {
+  const avoid = params.avoidPrompts.length
+    ? `\nتجنّب تكرار أو مشابهة هذه الأسئلة السابقة في نفس الاختبار:\n${params.avoidPrompts.map((p) => `- ${p}`).join("\n")}`
+    : "";
+
+  const prompt = `أنت معلّم خبير تصمم سؤال اختيار من متعدد باللغة العربية الفصحى لاختبار فهم الطالب لموضوع "${params.topic}"، بالاعتماد حصراً على المقتطف التالي المستخرج من محتوى دراسي حقيقي رفعه الطالب:
+"""
+${params.excerpt}
+"""
+المستوى المطلوب: "${DIFFICULTY_LABEL_AR[params.difficulty]}".
+المتطلبات:
+- السؤال وإجابته الصحيحة يجب أن يُستنتجا من المقتطف أعلاه حصراً، لا معلومات خارجية.
+- أربعة خيارات فقط، خيار واحد صحيح فقط، والمشتتات معقولة وليست واضحة الاستبعاد.
+- correctAnswer يجب أن يطابق نص أحد الخيارات الأربعة حرفياً تماماً.
+- اجعل الشرح (explanation) جملة أو جملتين توضح سبب صحة الإجابة بالاستناد للمقتطف.
+${MATH_FORMATTING_RULE}${avoid}
+أعد النتيجة بصيغة JSON فقط حسب المخطط المطلوب، بدون أي نص إضافي.`;
+
+  const result = await generateJson<GeneratedQuestion>(prompt, QUESTION_SCHEMA);
+  validateGeneratedQuestion(result);
+  return result;
+}
+
+export interface CustomTopicEvaluation {
+  topic: string;
+  mastery: $Enums.MasteryLevel;
+  rationale: string;
+}
+
+export interface LlmCustomEvaluation {
+  topics: CustomTopicEvaluation[];
+  overallSummary: string;
+}
+
+const CUSTOM_EVALUATION_SCHEMA = {
+  type: "OBJECT",
+  properties: {
+    topics: {
+      type: "ARRAY",
+      items: {
+        type: "OBJECT",
+        properties: {
+          topic: { type: "STRING" },
+          mastery: { type: "STRING", enum: ["GAP", "DEVELOPING", "MASTERED"] },
+          rationale: { type: "STRING" },
+        },
+        required: ["topic", "mastery", "rationale"],
+      },
+    },
+    overallSummary: { type: "STRING" },
+  },
+  required: ["topics", "overallSummary"],
+};
+
+export interface CustomDiagnosticTranscriptEntry {
+  topic: string;
+  difficulty: $Enums.DiagnosticDifficulty;
+  prompt: string;
+  userAnswer: string;
+  correctAnswer: string;
+  isCorrect: boolean;
+}
+
+/** Sends the full custom-attempt transcript to Gemini and lets it decide mastery per extracted topic (dynamic list, unlike the fixed 6-subskill evaluateDiagnosticAttempt). */
+export async function evaluateCustomDiagnosticAttempt(
+  transcript: CustomDiagnosticTranscriptEntry[],
+  topics: string[]
+): Promise<LlmCustomEvaluation> {
+  const transcriptText = transcript
+    .map((t, i) => {
+      const label = `${t.topic} / ${DIFFICULTY_LABEL_AR[t.difficulty]}`;
+      const result = t.isCorrect ? "إجابة صحيحة" : `إجابة خاطئة (الصحيحة: ${t.correctAnswer})`;
+      return `${i + 1}. [${label}] السؤال: ${t.prompt}\n   إجابة الطالب: ${t.userAnswer} — ${result}`;
+    })
+    .join("\n");
+
+  const prompt = `أنت مقيّم تربوي خبير.
+فيما يلي محضر إجابات طالب على اختبار تكيّفي مبني على محتوى رفعه بنفسه، مقسّم على المواضيع التالية بالضبط: ${topics.join("، ")}.
+عدد الأسئلة لكل موضوع متغيّر حسب أداء الطالب: يبدأ كل موضوع بسؤال متوسط، وكل سؤال لاحق يصعب مستوى إن أجاب صح أو يسهل مستوى إن أخطأ، ويتوقف الاختبار في ذلك الموضوع مبكراً بمجرد وضوح النتيجة.
+
+${transcriptText}
+
+لكل موضوع من المواضيع المذكورة أعلاه بالضبط (اذكرها جميعاً بدون استثناء، بنفس الأسماء الحرفية):
+صنّف مستوى إتقان الطالب له إلى واحدة من: MASTERED (متقن)، DEVELOPING (قيد التطور)، GAP (فجوة مهارية)، واكتب سبباً موجزاً بالعربية (جملة واحدة).
+ثم اكتب ملخصاً عاماً وموجزاً بالعربية (3-4 جمل) عن أداء الطالب إجمالاً.
+أعد النتيجة بصيغة JSON فقط حسب المخطط المطلوب، متضمّناً كل المواضيع المذكورة أعلاه بدون استثناء وبنفس أسمائها الحرفية.`;
+
+  return generateJson<LlmCustomEvaluation>(prompt, CUSTOM_EVALUATION_SCHEMA);
+}
+
+export interface CustomRoadmapEvaluationInput {
+  documentTitle: string;
+  topics: (CustomTopicEvaluation & { excerpt: string })[];
+  overallSummary: string;
+}
+
+/**
+ * Designs a learning roadmap from a set of topics extracted from the student's own uploaded
+ * document (not the fixed Qudurat baseline) — one node at minimum per topic, informed directly
+ * by that topic's own mastery result (no subskill-group indirection needed, since evaluation
+ * here is already per-topic).
+ */
+export async function generateCustomRoadmap(input: CustomRoadmapEvaluationInput): Promise<GeneratedRoadmap> {
+  const totalTopics = input.topics.length;
+  const breakdown = input.topics
+    .map((t) => `- ${t.topic}: ${t.mastery === "MASTERED" ? "متقن" : t.mastery === "DEVELOPING" ? "قيد التطور" : "فجوة مهارية"} — ${t.rationale}`)
+    .join("\n");
+
+  const prompt = `أنت مصمم مناهج خبير.
+طالب رفع ملفاً دراسياً بعنوان "${input.documentTitle}" وأخذ اختباراً تكيفياً مبنياً عليه. نتيجة تقييمه:
+${breakdown}
+
+ملخص عام: ${input.overallSummary}
+
+صمّم خطة تعلّم شاملة تغطي محتوى هذا الملف بالكامل، مبنية على نتيجة تقييم هذا الطالب أعلاه.
+
+هذه قائمة إلزامية (baseline) من ${totalTopics} مهارة فرعية مستقلة مستخرجة من ملف الطالب يجب تغطيتها بالكامل بغض النظر عن نتيجة التقييم — كل نقطة تمثّل عقدة (node) مستقلة بذاتها في الخطة، ممنوع دمج نقطتين أو أكثر في عقدة واحدة، وممنوع إسقاط أي نقطة منها حتى لو كانت "متقنة":
+${input.topics.map((t, i) => `${i + 1}. ${t.topic}`).join("\n")}
+
+المتطلبات:
+- عقدة واحدة مستقلة على الأقل لكل نقطة أعلاه (لا تدمج، لا تُسقط) — أي لا يقل إجمالي عدد العقد (skills) عن ${totalTopics}. المواضيع الواسعة يمكن أن تنقسم لأكثر من عقدة إذا رأيت ذلك مناسباً، لكن لا تقل أبداً عن ${totalTopics}.
+- alreadyMastered يجب أن تكون true فقط للعقد التي موضوعها مصنّف "متقن" أعلاه بالضبط — كل عقدة أخرى (قيد التطور أو فجوة مهارية) تكون alreadyMastered = false.
+- قسّم الخطة إلى أسابيع دراسية متتالية (milestones) بتسلسل تدريجي منطقي من الأسهل للأصعب. كل أسبوع يحتوي على 3 إلى 6 عقد فرعية. عنوان كل مرحلة (milestoneTitle) يجب أن يبدأ بصيغة "الأسبوع N: " متبوعاً بوصف قصير لموضوعها، حيث N رقم تسلسلي يبدأ من 1.
+- لكل عقدة: key فريد بالإنجليزية (kebab-case)، عنوان ووصف بالعربية يعكسان تحديداً نقطة واحدة من القائمة أعلاه، milestoneTitle (اسم أحد الأسابيع أعلاه بالضبط)، tier (رقم صف يبدأ من 0 ويعكس ترتيب الأسبوع)، وقائمة prerequisites (مفاتيح عقد أخرى في نفس القائمة يجب إتقانها أولاً — عقد tier 0 غالباً بدون متطلبات سابقة).
+- لكل عقدة: sourceTopicName يجب أن يطابق بالضبط (نفس الأحرف) اسم إحدى النقاط في القائمة الرقمية أعلاه — هذا إلزامي لكل عقدة بلا استثناء، حتى لو انقسمت نقطة واحدة لعدة عقد (تحمل كلها نفس sourceTopicName).
+- لكل عقدة: عنوان درس واحد (lessonTitle) يصف تدريباً مكثفاً على أساسيات ذلك الموضوع تحديداً (لا تولّد أسئلة الدرس هنا، فقط عنوانه).
+- لكل عقدة: اختر icon واحداً يناسب موضوعها من هذه القيم فقط: books (قراءة/نصوص/لغة)، bulb (مفاهيم عامة وأفكار)، search (تحليل/اكتشاف/تدقيق)، calculator (حساب/أرقام/عمليات)، chart (مهارة ختامية أو تحدٍّ متقدم مركّب).
+- أعطِ الخطة عنواناً ووصفاً عاماً بالعربية (title, description) يعكسان أنها خطة مبنية على محتوى "${input.documentTitle}" ونتيجة تقييم الطالب.
 ${MATH_FORMATTING_RULE}
 أعد النتيجة بصيغة JSON فقط حسب المخطط المطلوب.`;
 

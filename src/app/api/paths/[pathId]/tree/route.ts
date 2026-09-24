@@ -34,6 +34,7 @@ export async function GET(_request: Request, context: { params: Promise<{ pathId
       lessons: skill.lessons,
       status: skill.progress[0]?.status ?? "LOCKED",
       bestScore: skill.progress[0]?.bestScore ?? 0,
+      completedAt: skill.progress[0]?.completedAt ?? null,
     }));
 
     return NextResponse.json({ nodes });

@@ -16,6 +16,7 @@ export interface TreeSkillNode {
   lessons: { id: string; title: string; order: number }[];
   status: "LOCKED" | "UNLOCKED" | "IN_PROGRESS" | "COMPLETED";
   bestScore: number;
+  completedAt: string | null;
 }
 
 export function useSkillTree(pathId: string) {

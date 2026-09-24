@@ -5,7 +5,7 @@ import type { ButtonHTMLAttributes } from "react";
 type Variant = "primary" | "secondary" | "ghost" | "danger" | "success";
 
 const VARIANT_CLASSES: Record<Variant, string> = {
-  primary: "bg-[var(--accent)] border-transparent text-white hover:bg-[color-mix(in_srgb,var(--accent)_85%,black)] shadow-[var(--shadow-sm)]",
+  primary: "bg-[var(--accent)] border-transparent text-white hover:bg-[var(--brand-700)] shadow-[var(--shadow-sm)]",
   secondary: "bg-[var(--card-bg)] border-[var(--border-primary)] text-[var(--ink-soft)] hover:bg-[var(--paper)] shadow-[var(--shadow-sm)]",
   ghost: "bg-transparent border-transparent text-[var(--ink)] hover:bg-[var(--paper)]",
   danger: "bg-[var(--heart)] border-transparent text-white hover:brightness-105 shadow-[var(--shadow-sm)]",

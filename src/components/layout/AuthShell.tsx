@@ -9,7 +9,7 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
   const { t } = useTranslation();
 
   return (
-    <main className="flex-1 flex items-center justify-center p-6 relative overflow-hidden">
+    <main className="flex-1 flex items-center justify-center p-6 relative overflow-hidden hero-gradient">
       <div
         className="pointer-events-none absolute -top-24 -end-24 w-80 h-80 rounded-full opacity-20 blur-3xl"
         style={{ background: "var(--accent)" }}
@@ -17,7 +17,7 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
       />
       <div
         className="pointer-events-none absolute -bottom-24 -start-24 w-80 h-80 rounded-full opacity-20 blur-3xl"
-        style={{ background: "var(--info)" }}
+        style={{ background: "var(--success)" }}
         aria-hidden
       />
       <div className="w-full max-w-sm relative">

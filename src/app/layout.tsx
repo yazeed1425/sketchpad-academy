@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, Cairo } from "next/font/google";
+import { Inter, Tajawal } from "next/font/google";
 import { cookies } from "next/headers";
 import "./globals.css";
 import { LocaleProvider } from "@/lib/i18n/LocaleProvider";
@@ -18,10 +18,10 @@ const bodyFont = Inter({
   subsets: ["latin"],
 });
 
-const arabicFont = Cairo({
+const arabicFont = Tajawal({
   variable: "--font-arabic",
   subsets: ["arabic", "latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "500", "700"],
 });
 
 export const metadata: Metadata = {

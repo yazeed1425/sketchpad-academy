@@ -15,7 +15,7 @@
   --heart: #f04438; /* Error/500 */
   --heart-soft: color-mix(in srgb, #f04438 12%, white);
   --gold: #f79009; /* Warning/500 */
-  --gold-soft: color-mix(in srgb, #f79009 12%, white);
+  --gold-soft: #fffaeb;
   --success: #17b26a; /* Success/500 */
   --success-soft: #edfcf2; /* utility-green-50 */
   --info: #7a5af8; /* secondary/status accent: level indicator, in-progress skills, practice hints */
@@ -26,6 +26,28 @@
   --tier-silver: #8a8f99;
   --tier-gold: #d1a327;
   --tier-diamond: #4fb6d6;
+
+  /* Extended MEDAD gray/brand scale — additive, only used by newly re-skinned components. */
+  --gray-25: #fcfcfc;
+  --gray-50: #fafafa;
+  --gray-400: #a4a7ae;
+  --gray-600: #535862;
+  --gray-800: #252b37;
+
+  --brand-100: #d0dcef;
+  --brand-300: #93b1dd;
+  --brand-700: #0063a5;
+  --brand-900: #004675;
+
+  --blue-dark-300: #84adff;
+
+  --badge-blue-bg: #eff8ff;
+  --badge-blue-border: #b2ddff;
+  --badge-blue-text: #175cd3;
+
+  --overdue: #dc6803;
+  --overdue-soft: #fffaeb;
+  --overdue-border: #fec84b;
 
   --radius-xxs: 2px;
   --radius-xs: 4px;
@@ -61,6 +83,22 @@
   --color-info: var(--info);
   --color-info-soft: var(--info-soft);
   --color-card: var(--card-bg);
+  --color-gray-25: var(--gray-25);
+  --color-gray-50: var(--gray-50);
+  --color-gray-400: var(--gray-400);
+  --color-gray-600: var(--gray-600);
+  --color-gray-800: var(--gray-800);
+  --color-brand-100: var(--brand-100);
+  --color-brand-300: var(--brand-300);
+  --color-brand-700: var(--brand-700);
+  --color-brand-900: var(--brand-900);
+  --color-blue-dark-300: var(--blue-dark-300);
+  --color-badge-blue-bg: var(--badge-blue-bg);
+  --color-badge-blue-border: var(--badge-blue-border);
+  --color-badge-blue-text: var(--badge-blue-text);
+  --color-overdue: var(--overdue);
+  --color-overdue-soft: var(--overdue-soft);
+  --color-overdue-border: var(--overdue-border);
   --font-display: var(--font-display);
   --font-body: var(--font-body);
 }
@@ -81,6 +119,12 @@
     --gold-soft: color-mix(in srgb, #f79009 20%, #1a2233);
     --success-soft: color-mix(in srgb, #17b26a 20%, #1a2233);
     --info-soft: color-mix(in srgb, #7a5af8 20%, #1a2233);
+    --gray-25: #1a2233;
+    --gray-50: #1f2937;
+    --badge-blue-bg: color-mix(in srgb, #175cd3 20%, #1a2233);
+    --overdue-soft: color-mix(in srgb, #dc6803 20%, #1a2233);
+    --brand-700: #6898d4;
+    --badge-blue-text: #84caff;
   }
 }
 
@@ -100,6 +144,12 @@
   --gold-soft: color-mix(in srgb, #f79009 20%, #1a2233);
   --success-soft: color-mix(in srgb, #17b26a 20%, #1a2233);
   --info-soft: color-mix(in srgb, #7a5af8 20%, #1a2233);
+  --gray-25: #1a2233;
+  --gray-50: #1f2937;
+  --badge-blue-bg: color-mix(in srgb, #175cd3 20%, #1a2233);
+  --overdue-soft: color-mix(in srgb, #dc6803 20%, #1a2233);
+  --brand-700: #6898d4;
+  --badge-blue-text: #84caff;
 }
 
 body {
@@ -174,3 +224,230 @@ html[lang="ar"] .font-display {
   from { stroke-dashoffset: var(--dash, 400); }
   to { stroke-dashoffset: 0; }
 }
+
+/* ─── MEDAD utility classes ─── */
+
+.floating-card {
+  background: var(--card-bg);
+  border-radius: var(--radius-4xl);
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+  border-radius: 9999px;
+  font-weight: 600;
+  font-size: 14px;
+  padding: 8px 14px;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: var(--shadow-sm);
+  transition: background 0.15s ease;
+}
+.btn-primary:hover { background: var(--brand-700); }
+.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.btn-secondary-color {
+  background: var(--card-bg);
+  color: var(--brand-700);
+  border: 1px solid var(--brand-300);
+  border-radius: 9999px;
+  font-weight: 600;
+  font-size: 14px;
+  padding: 8px 14px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.15s ease;
+}
+.btn-secondary-color:hover { background: var(--accent-soft); }
+
+.btn-secondary-gray {
+  background: var(--card-bg);
+  color: var(--ink-soft);
+  border: 1px solid var(--border-primary);
+  border-radius: 9999px;
+  font-weight: 600;
+  font-size: 14px;
+  padding: 8px 14px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.15s ease;
+}
+.btn-secondary-gray:hover { background: var(--paper); }
+
+.btn-tertiary {
+  background: transparent;
+  color: var(--brand-700);
+  border: none;
+  border-radius: 9999px;
+  font-weight: 600;
+  font-size: 14px;
+  padding: 8px 14px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.metric-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-4xl);
+  box-shadow: var(--shadow-sm);
+  padding: 16px;
+}
+.metric-card-cta {
+  border-color: var(--blue-dark-300);
+  cursor: pointer;
+}
+
+.badge-blue {
+  background: var(--badge-blue-bg);
+  border: 1px solid var(--badge-blue-border);
+  color: var(--badge-blue-text);
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 2px 8px;
+  display: inline-flex;
+  align-items: center;
+}
+.badge-brand {
+  background: var(--accent-soft);
+  border: 1px solid var(--brand-300);
+  color: var(--brand-700);
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 2px 8px;
+}
+.badge-gray {
+  background: var(--gray-50);
+  border: 1px solid var(--border-secondary);
+  color: var(--ink-soft);
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 2px 8px;
+}
+.badge-overdue {
+  background: var(--overdue-soft);
+  border: 1px solid var(--overdue-border);
+  color: var(--overdue);
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 2px 8px;
+}
+.badge-success {
+  background: var(--success-soft);
+  border: 1px solid color-mix(in srgb, var(--success) 40%, transparent);
+  color: var(--success);
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 2px 8px;
+}
+
+.nav-item-active {
+  background: var(--card-bg);
+  border-radius: var(--radius-4xl);
+  color: var(--gray-800);
+  font-weight: 600;
+}
+.nav-item-inactive {
+  background: transparent;
+  border-radius: var(--radius-sm);
+  color: var(--ink-soft);
+}
+.nav-item-inactive:hover {
+  background: var(--gray-50);
+}
+
+.tab-pill-active {
+  background: var(--accent);
+  color: #fff;
+  border-radius: 9999px;
+  font-weight: 600;
+  font-size: 16px;
+  padding: 8px 12px;
+  height: 44px;
+}
+.tab-pill-inactive {
+  background: transparent;
+  color: var(--ink-faint);
+  border-radius: 9999px;
+  font-weight: 600;
+  font-size: 16px;
+  padding: 8px 12px;
+  height: 44px;
+}
+
+.tab-underline-active {
+  border-bottom: 2px solid var(--accent);
+  color: var(--ink-soft);
+  font-weight: 600;
+  font-size: 16px;
+  padding-bottom: 12px;
+  height: 36px;
+}
+.tab-underline-inactive {
+  border-bottom: 2px solid transparent;
+  color: var(--ink-faint);
+  font-weight: 600;
+  font-size: 16px;
+  padding: 0 16px 12px;
+  height: 36px;
+}
+
+.checkbox {
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+  appearance: none;
+  cursor: pointer;
+}
+.checkbox:checked {
+  background: var(--brand-700);
+  border-color: var(--brand-700);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Cpath d='M11.6 3.4 5.5 9.5 2.4 6.4' stroke='white' stroke-width='2' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-size: 12px;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+@keyframes flicker {
+  0%, 100% { transform: scale(1) rotate(-2deg); }
+  50% { transform: scale(1.12) rotate(2deg); }
+}
+.streak-icon { animation: flicker 1.5s ease-in-out infinite; display: inline-block; }
+
+.hero-gradient {
+  background:
+    radial-gradient(ellipse 40% 50% at 80% 20%, color-mix(in srgb, var(--success) 8%, transparent) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 50% at 20% 80%, color-mix(in srgb, var(--accent) 6%, transparent) 0%, transparent 60%),
+    var(--card-bg);
+}
+
+@keyframes pulse-ring {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 30%, transparent); }
+  50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 0%, transparent); }
+}
+.node-active-pulse { animation: pulse-ring 2s ease-in-out infinite; }
+
+@keyframes fill-bar {
+  from { width: 0%; }
+  to { width: var(--bar-width, 0%); }
+}
+.bar-animated { animation: fill-bar 0.9s ease-out forwards; }

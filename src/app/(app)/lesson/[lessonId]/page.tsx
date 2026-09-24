@@ -4,7 +4,7 @@ import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { RoughButton } from "@/components/ui/RoughButton";
-import { HeartBrokenIcon, BookIcon } from "@/components/ui/icons";
+import { HeartBrokenIcon, BookIcon, ChevronLeftIcon, FileTextIcon } from "@/components/ui/icons";
 import { QuizRunner, type QuizQuestion } from "@/components/quiz/QuizRunner";
 import { LessonSummary, type LessonCompleteResult } from "@/components/quiz/LessonSummary";
 import { LessonContentCards, type LessonContent } from "@/components/quiz/LessonContentCard";
@@ -12,6 +12,7 @@ import { apiPost, ApiError } from "@/lib/hooks/useApi";
 import { useProfile } from "@/lib/hooks/useProfile";
 import { useTranslation } from "@/lib/i18n/LocaleProvider";
 import { formatNumber } from "@/lib/i18n/translations";
+import { classifySkillDomain } from "@/lib/skillDomain";
 
 interface StartResponse {
   attemptId: string;
@@ -40,6 +41,7 @@ export default function LessonPage({ params }: { params: Promise<{ lessonId: str
   );
   const [result, setResult] = useState<LessonCompleteResult | null>(null);
   const [bankPractice, setBankPractice] = useState<BankPracticeState>({ status: "idle" });
+  const [activeTab, setActiveTab] = useState<"lesson" | "notes">("lesson");
   const { mutate: refreshProfile } = useProfile();
   const { t, locale } = useTranslation();
 
@@ -95,63 +97,99 @@ export default function LessonPage({ params }: { params: Promise<{ lessonId: str
 
   if (result) return <LessonSummary result={result} pathId={state.data.pathId} />;
 
+  const domain = classifySkillDomain(state.data.lessonTitle);
+  const domainLabel = domain === "verbal" ? t("dashboard.verbal") : t("dashboard.quantitative");
+
   return (
-    <div className="w-full max-w-7xl mx-auto space-y-8 px-6 md:px-12 lg:px-16">
-      <div>
-        <h1 className="font-display text-3xl mb-5">{state.data.lessonTitle}</h1>
-        <LessonContentCards content={state.data.content} />
+    <div className="w-full max-w-5xl mx-auto">
+      <div className="flex items-center gap-3 mb-5 flex-wrap">
+        <Link href={`/paths/${state.data.pathId}/tree`} className="btn-secondary-gray flex items-center gap-1 text-sm">
+          <ChevronLeftIcon size={14} />
+          {t("lesson.backToRoadmap")}
+        </Link>
+        <span className="badge-blue">{domainLabel}</span>
+        <h1 className="font-display text-xl text-[var(--ink)]">{state.data.lessonTitle}</h1>
       </div>
 
-      <div>
-        <h2 className="font-display text-xl mb-4">{t("lesson.testYourUnderstanding")}</h2>
-        <QuizRunner<LessonCompleteResult>
-          attemptId={state.data.attemptId}
-          questions={state.data.questions}
-          onFinished={handleFinished}
-        />
+      <div className="flex border-b border-[var(--border-secondary)] mb-6">
+        <button
+          onClick={() => setActiveTab("lesson")}
+          className={activeTab === "lesson" ? "tab-underline-active flex items-center gap-2" : "tab-underline-inactive flex items-center gap-2"}
+        >
+          <BookIcon size={15} />
+          {t("lesson.lessonTab")}
+        </button>
+        <button
+          onClick={() => setActiveTab("notes")}
+          className={activeTab === "notes" ? "tab-underline-active flex items-center gap-2" : "tab-underline-inactive flex items-center gap-2"}
+        >
+          <FileTextIcon size={15} />
+          {t("lesson.notesTab")}
+        </button>
       </div>
 
-      <div>
-        <h2 className="font-display text-xl mb-4 flex items-center gap-2">
-          <BookIcon size={20} className="text-[var(--info)]" />
-          {t("lesson.questionBankPractice")}
-        </h2>
+      {activeTab === "notes" ? (
+        <Card className="text-center">
+          <p className="text-sm text-[var(--ink-soft)]">{t("lesson.notesComingSoon")}</p>
+        </Card>
+      ) : (
+        <div className="space-y-8">
+          <div>
+            <LessonContentCards content={state.data.content} />
+          </div>
 
-        {bankPractice.status === "idle" && (
-          <Card className="text-center">
-            <p className="text-sm text-[var(--ink-soft)] mb-4">{t("lesson.questionBankPracticeBody")}</p>
-            <RoughButton variant="secondary" onClick={startBankPractice} fullWidth>
-              {t("lesson.startBankPractice")}
-            </RoughButton>
-          </Card>
-        )}
+          <div>
+            <h2 className="font-display text-xl mb-4">{t("lesson.testYourUnderstanding")}</h2>
+            <QuizRunner<LessonCompleteResult>
+              attemptId={state.data.attemptId}
+              questions={state.data.questions}
+              onFinished={handleFinished}
+            />
+          </div>
 
-        {bankPractice.status === "loading" && (
-          <Card className="text-center">
-            <p className="text-sm text-[var(--ink-soft)]">{t("lesson.loadingBankPractice")}</p>
-          </Card>
-        )}
+          <div>
+            <h2 className="font-display text-xl mb-4 flex items-center gap-2">
+              <BookIcon size={20} className="text-[var(--info)]" />
+              {t("lesson.questionBankPractice")}
+            </h2>
 
-        {bankPractice.status === "running" && (
-          <QuizRunner<PracticeResult>
-            attemptId={bankPractice.attemptId}
-            questions={bankPractice.questions}
-            onFinished={(res) => setBankPractice({ status: "result", result: res })}
-          />
-        )}
+            {bankPractice.status === "idle" && (
+              <Card className="text-center">
+                <p className="text-sm text-[var(--ink-soft)] mb-4">{t("lesson.questionBankPracticeBody")}</p>
+                <RoughButton variant="secondary" onClick={startBankPractice} fullWidth>
+                  {t("lesson.startBankPractice")}
+                </RoughButton>
+              </Card>
+            )}
 
-        {bankPractice.status === "result" && (
-          <Card className="text-center animate-pop-in">
-            <p className="font-display text-3xl mb-2">{formatNumber(bankPractice.result.scorePct, locale)}%</p>
-            <p className="text-sm text-[var(--ink-soft)] mb-4">
-              {bankPractice.result.practiceHeartRefilled ? t("practice.greatReview") : t("practice.scoreMore")}
-            </p>
-            <RoughButton variant="secondary" onClick={() => setBankPractice({ status: "idle" })}>
-              {t("practice.again")}
-            </RoughButton>
-          </Card>
-        )}
-      </div>
+            {bankPractice.status === "loading" && (
+              <Card className="text-center">
+                <p className="text-sm text-[var(--ink-soft)]">{t("lesson.loadingBankPractice")}</p>
+              </Card>
+            )}
+
+            {bankPractice.status === "running" && (
+              <QuizRunner<PracticeResult>
+                attemptId={bankPractice.attemptId}
+                questions={bankPractice.questions}
+                onFinished={(res) => setBankPractice({ status: "result", result: res })}
+              />
+            )}
+
+            {bankPractice.status === "result" && (
+              <Card className="text-center animate-pop-in">
+                <p className="font-display text-3xl mb-2">{formatNumber(bankPractice.result.scorePct, locale)}%</p>
+                <p className="text-sm text-[var(--ink-soft)] mb-4">
+                  {bankPractice.result.practiceHeartRefilled ? t("practice.greatReview") : t("practice.scoreMore")}
+                </p>
+                <RoughButton variant="secondary" onClick={() => setBankPractice({ status: "idle" })}>
+                  {t("practice.again")}
+                </RoughButton>
+              </Card>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

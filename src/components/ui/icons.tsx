@@ -280,6 +280,105 @@ export function CrossIcon({ className = "", size = 26 }: IconProps) {
   );
 }
 
+export function HomeIcon({ className = "", size = 20 }: IconProps) {
+  return (
+    <svg {...base(size)} className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M4 11.5 12 4l8 7.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M6 10v9a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-9" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export function MapIcon({ className = "", size = 20 }: IconProps) {
+  return (
+    <svg {...base(size)} className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path
+        d="M9 4.5 4.5 6v13L9 17.5m0-13 6 2m-6-2v13m6-11 4.5-1.5v13L15 19.5m0-13v13m0-13-6 2"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+export function FileTextIcon({ className = "", size = 20 }: IconProps) {
+  return (
+    <svg {...base(size)} className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M6 4h8.5L18 7.5V20a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+      <path d="M14.5 4v3.5H18" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+      <path d="M8 11h8M8 14h8M8 17h5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function BarChartIcon({ className = "", size = 20 }: IconProps) {
+  return (
+    <svg {...base(size)} className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M5 20V10M12 20V4M19 20v-7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function ActivityIcon({ className = "", size = 20 }: IconProps) {
+  return (
+    <svg {...base(size)} className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M3 12h4l2.2-6.5L13 18l2-8 1.5 2.5H21" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export function TrendingUpIcon({ className = "", size = 20 }: IconProps) {
+  return (
+    <svg {...base(size)} className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M3 16.5 9.5 10l4 4L21 6.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M15.5 6.5H21v5.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export function ZapIcon({ className = "", size = 20 }: IconProps) {
+  return (
+    <svg {...base(size)} className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M13 3 5 13.5h5.5L11 21l8-10.5h-5.5L13 3Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" fill="currentColor" fillOpacity={0.15} />
+    </svg>
+  );
+}
+
+export function HashIcon({ className = "", size = 20 }: IconProps) {
+  return (
+    <svg {...base(size)} className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M9.5 3.5 7 20.5M17 3.5l-2.5 17M4 8.5h16M3 15.5h16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function ChevronLeftIcon({ className = "", size = 20 }: IconProps) {
+  return (
+    <svg {...base(size)} className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M14.5 5.5 8 12l6.5 6.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export function PlayCircleIcon({ className = "", size = 20 }: IconProps) {
+  return (
+    <svg {...base(size)} className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="12" cy="12" r="8.5" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M10 8.5 15.5 12 10 15.5V8.5Z" fill="currentColor" />
+    </svg>
+  );
+}
+
+export function CircleIcon({ className = "", size = 8, filled = true }: IconProps) {
+  return (
+    <svg {...base(size)} className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="12" cy="12" r="9" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.6" />
+    </svg>
+  );
+}
+
 const ICONS: Record<string, (props: IconProps) => React.ReactElement> = {
   heart: HeartIcon,
   lightbulb: LightbulbIcon,

@@ -9,6 +9,7 @@ import {
   generateEmbedding,
   generatePracticeQuestion,
   generateMutatedPracticeQuestion,
+  generateCustomQuestion,
   type LessonContent,
   type LessonReference,
   type QuestionBankReference,
@@ -85,12 +86,26 @@ async function findQuestionBankReferences(topic: string, count: number): Promise
 }
 
 /**
- * Generates `count` fresh multiple-choice questions for a topic: mutates as many real Supabase
- * question-bank references as were found, then fills any remainder with unreferenced generation
- * (covers topics the bank doesn't have, e.g. most verbal ones — never blocks on RAG). Shared by
- * "تدرب من بنك الاسئلة" and by lazy curriculum-question generation on a lesson's first open.
+ * Generates `count` fresh multiple-choice questions for a topic. When `sourceExcerpt` is given
+ * (a custom-content skill, see Skill.sourceExcerpt), every question is grounded in that excerpt
+ * directly — the Qudurat RAG bank has no relevant content for arbitrary uploaded material, so it
+ * is skipped entirely. Otherwise mutates as many real Supabase question-bank references as were
+ * found, then fills any remainder with unreferenced generation (covers topics the bank doesn't
+ * have, e.g. most verbal ones — never blocks on RAG). Shared by "تدرب من بنك الاسئلة" and by lazy
+ * curriculum-question generation on a lesson's first open.
  */
-async function generateQuestionSet(topic: string, count: number): Promise<GeneratedQuestion[]> {
+async function generateQuestionSet(topic: string, count: number, sourceExcerpt?: string): Promise<GeneratedQuestion[]> {
+  if (sourceExcerpt) {
+    const generated: GeneratedQuestion[] = [];
+    const avoidPrompts: string[] = [];
+    for (let i = 0; i < count; i++) {
+      const question = await generateCustomQuestion({ topic, excerpt: sourceExcerpt, difficulty: "MEDIUM", avoidPrompts });
+      generated.push(question);
+      avoidPrompts.push(question.prompt);
+    }
+    return generated;
+  }
+
   const references = await findQuestionBankReferences(topic, count);
 
   const generated: GeneratedQuestion[] = [];
@@ -157,10 +172,10 @@ export async function startPractice(userId: string) {
 export async function startQuestionBankPractice(userId: string, lessonId: string) {
   const lesson = await db.lesson.findUniqueOrThrow({
     where: { id: lessonId },
-    include: { skill: { select: { title: true, description: true } } },
+    include: { skill: { select: { title: true, description: true, sourceExcerpt: true } } },
   });
   const topic = `${lesson.skill.title}: ${lesson.title}`;
-  const generated = await generateQuestionSet(topic, QUESTION_BANK_PRACTICE_COUNT);
+  const generated = await generateQuestionSet(topic, QUESTION_BANK_PRACTICE_COUNT, lesson.skill.sourceExcerpt ?? undefined);
 
   const questions = await Promise.all(
     generated.map((g, order) =>
@@ -200,7 +215,7 @@ export async function startAttempt(userId: string, lessonId: string) {
     where: { id: lessonId },
     include: {
       questions: { where: { source: "CURRICULUM" }, orderBy: { order: "asc" } },
-      skill: { select: { pathId: true, title: true, description: true } },
+      skill: { select: { pathId: true, title: true, description: true, sourceExcerpt: true } },
     },
   });
 
@@ -234,13 +249,13 @@ export async function startAttempt(userId: string, lessonId: string) {
 async function getOrGenerateCurriculumQuestions(lesson: {
   id: string;
   title: string;
-  skill: { title: string; description: string };
+  skill: { title: string; description: string; sourceExcerpt: string | null };
   questions: { id: string; type: $Enums.QuestionType; prompt: string; optionsJson: string }[];
 }) {
   if (lesson.questions.length > 0) return lesson.questions;
 
   const topic = `${lesson.skill.title}: ${lesson.title}`;
-  const generated = await generateQuestionSet(topic, CURRICULUM_QUESTION_COUNT);
+  const generated = await generateQuestionSet(topic, CURRICULUM_QUESTION_COUNT, lesson.skill.sourceExcerpt ?? undefined);
 
   return Promise.all(
     generated.map((g, order) =>
@@ -260,14 +275,29 @@ async function getOrGenerateCurriculumQuestions(lesson: {
   );
 }
 
-/** Returns the lesson's cached explanatory content, generating and persisting it via Gemini (RAG-grounded when possible) on first view. */
+/**
+ * Returns the lesson's cached explanatory content, generating and persisting it via Gemini on
+ * first view — grounded in the skill's own sourceExcerpt for custom-content skills (never in the
+ * Qudurat RAG bank, which has no relevant content for arbitrary uploaded material), or in the
+ * Qudurat RAG bank when available otherwise.
+ */
 async function getOrGenerateLessonContent(lesson: {
   id: string;
   content: string | null;
   title: string;
-  skill: { title: string; description: string };
+  skill: { title: string; description: string; sourceExcerpt: string | null };
 }): Promise<LessonContent> {
   if (lesson.content) return JSON.parse(lesson.content) as LessonContent;
+
+  if (lesson.skill.sourceExcerpt) {
+    const generated = await generateLessonContent({
+      title: lesson.title,
+      description: lesson.skill.description,
+      sourceExcerpt: lesson.skill.sourceExcerpt,
+    });
+    await db.lesson.update({ where: { id: lesson.id }, data: { content: JSON.stringify(generated) } });
+    return generated;
+  }
 
   const reference = await findReference(`${lesson.title} ${lesson.skill.description}`);
   const generated = await generateLessonContent({ title: lesson.title, description: lesson.skill.description, reference });

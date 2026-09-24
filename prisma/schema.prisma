@@ -37,6 +37,7 @@ model User {
   pathEnrollments    PathEnrollment[]
   diagnosticAttempts DiagnosticAttempt[]
   personalizedPaths  LearningPath[]
+  customDiagnosticAttempts CustomDiagnosticAttempt[]
 }
 
 // Gamification state that changes often — kept separate from User for clarity.
@@ -79,6 +80,7 @@ model ActivityDay {
 enum PlanType {
   COMPREHENSIVE
   REMEDIAL
+  CUSTOM
 }
 
 model LearningPath {
@@ -138,6 +140,12 @@ model Skill {
   description String
   icon        String @default("lightbulb")
   xpReward    Int    @default(20)
+
+  // Set only for skills generated from a CUSTOM (uploaded-document) plan: the grounding text
+  // excerpt for this skill's topic, extracted once by analyzeDocument. When present, lesson
+  // content/questions are generated from this excerpt directly instead of the Qudurat RAG bank
+  // (which has no relevant content for arbitrary uploaded material) — see quizService.ts.
+  sourceExcerpt String?
 
   // Layout hints for the hand-drawn skill tree canvas (tree is non-linear / branching).
   tier Int // vertical row, 0-indexed
@@ -481,6 +489,51 @@ model DiagnosticResponse {
   isCorrect    Boolean
   timeTakenSec Int
   answeredAt   DateTime             @default(now())
+
+  @@unique([attemptId, order])
+  @@index([attemptId])
+}
+
+// ───────────────────────── Custom-content adaptive placement ─────────────────────────
+// A second placement flow: the student uploads a document, Gemini extracts a dynamic set of
+// topics from it (cached on the attempt as topicsJson), and questions/mastery/roadmap are all
+// generated from those topics instead of the fixed DiagnosticSubSkill taxonomy. Unlike
+// DiagnosticQuestion (a shared, RAG-mutated bank), custom questions are generated fresh per
+// attempt from a private document and never reused — so bank + response are one denormalized
+// row here instead of two separate models.
+
+model CustomDiagnosticAttempt {
+  id             String    @id @default(cuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sourceFileName String
+  sourceMimeType String
+  documentTitle  String
+  topicsJson     String // JSON-encoded {name, excerpt}[], extracted once by analyzeDocument and reused for every question/evaluation/roadmap call
+  startedAt      DateTime  @default(now())
+  completedAt    DateTime?
+  reportJson     String?
+
+  responses CustomDiagnosticResponse[]
+
+  @@index([userId])
+}
+
+model CustomDiagnosticResponse {
+  id            String                  @id @default(cuid())
+  attemptId     String
+  attempt       CustomDiagnosticAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  order         Int
+  topic         String // free-text topic name (matches a topicsJson entry), not an enum
+  difficulty    DiagnosticDifficulty
+  prompt        String
+  optionsJson   String
+  correctAnswer String
+  explanation   String
+  userAnswer    String?
+  isCorrect     Boolean?
+  timeTakenSec  Int?
+  answeredAt    DateTime?
 
   @@unique([attemptId, order])
   @@index([attemptId])
