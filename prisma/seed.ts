@@ -6,8 +6,8 @@ const adapter = new PrismaBetterSqlite3({ url: process.env.DATABASE_URL ?? "file
 const db = new PrismaClient({ adapter });
 
 // The dashboard's real learning path is the personalized, diagnostic-generated roadmap (see
-// roadmapService.ts / generatePersonalizedRoadmap) — created per-user once they complete the
-// placement test, not seeded here. This file only seeds account-independent gamification data.
+// roadmapService.ts / generateAndAssignComprehensivePath) — created per-user once they complete
+// the placement test, not seeded here. This file only seeds account-independent gamification data.
 
 const questTemplates = [
   { type: "COMPLETE_LESSONS" as const, description: "Complete {target} lessons today", targetMin: 1, targetMax: 3, xpReward: 30 },

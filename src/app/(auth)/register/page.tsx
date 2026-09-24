@@ -24,7 +24,7 @@ export default function RegisterPage() {
     setLoading(true);
     try {
       await apiPost("/api/auth/register", { name, email, password });
-      router.push("/paths");
+      router.push("/dashboard");
       router.refresh();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Something went wrong");

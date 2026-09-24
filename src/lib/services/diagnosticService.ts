@@ -10,7 +10,7 @@ import {
   type DiagnosticReference,
 } from "@/lib/llm/gemini";
 import { getSupabase } from "@/lib/supabase";
-import { generateAndAssignPersonalizedPath } from "@/lib/services/roadmapService";
+import { generateAndAssignComprehensivePath } from "@/lib/services/roadmapService";
 import type { $Enums } from "@/generated/prisma/client";
 
 function normalize(answer: string) {
@@ -367,7 +367,7 @@ export async function completeDiagnostic(userId: string, attemptId: string): Pro
 
   // Gemini designs a personalized skill tree from these results — this becomes the
   // student's dashboard roadmap, replacing whatever personalized path they had before.
-  const roadmap = await generateAndAssignPersonalizedPath(userId, {
+  const roadmap = await generateAndAssignComprehensivePath(userId, {
     subSkills: subSkillResults.map(({ subSkill, mastery, rationale }) => ({ subSkill, mastery, rationale })),
     overallSummary: evaluation.overallSummary,
   });

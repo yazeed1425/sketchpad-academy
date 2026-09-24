@@ -18,6 +18,14 @@ export default function PathsPage() {
 
       {isLoading ? (
         <p>{t("paths.loading")}</p>
+      ) : paths.length === 0 ? (
+        <Link href="/diagnostic">
+          <Card className="text-center bg-[var(--accent-soft)] hover:-translate-y-0.5 transition-transform max-w-md mx-auto">
+            <h2 className="font-display text-lg mb-1">{t("dashboard.takePlacementTitle")}</h2>
+            <p className="text-sm text-[var(--ink-soft)] mb-3">{t("dashboard.takePlacementBody")}</p>
+            <span className="text-[var(--accent)] font-display underline">{t("dashboard.takePlacement")}</span>
+          </Card>
+        </Link>
       ) : (
         <div className="grid sm:grid-cols-2 gap-4">
           {paths.map((path) => {

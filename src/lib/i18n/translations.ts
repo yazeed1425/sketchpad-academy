@@ -92,6 +92,10 @@ const en = {
   "lesson.dayStreak": "{count}-day streak",
   "lesson.heartsLost": "-{count} heart(s)",
   "lesson.testYourUnderstanding": "Test your understanding",
+  "lesson.questionBankPractice": "Practice from the question bank",
+  "lesson.questionBankPracticeBody": "Extra practice questions on this topic, pulled from the real GAT question bank — no hearts at risk.",
+  "lesson.startBankPractice": "Start practicing",
+  "lesson.loadingBankPractice": "Preparing practice questions...",
 
   "practice.title": "Practice Session",
   "practice.subtitle": "Review questions from skills you've already completed. No hearts lost — score {pct}%+ to earn one back.",
@@ -123,14 +127,6 @@ const en = {
   "dashboard.takePlacementBody": "Take a short adaptive placement test and we'll set up your skill tree at exactly the right level.",
   "dashboard.takePlacement": "Take the placement test",
 
-  "diagnostic.choice.title": "Choose your learning plan",
-  "diagnostic.choice.body": "How would you like to start?",
-  "diagnostic.choice.comprehensive.title": "Comprehensive plan (from scratch)",
-  "diagnostic.choice.comprehensive.body": "A complete path that teaches and covers every Quantitative and Verbal GAT skill, step by step.",
-  "diagnostic.choice.comprehensive.cta": "Start the comprehensive plan",
-  "diagnostic.choice.comprehensive.generating": "Building your comprehensive plan...",
-  "diagnostic.choice.remedial.title": "Quick remedial plan (close the gaps)",
-  "diagnostic.choice.remedial.body": "A plan focused only on the skills your diagnostic shows you need to improve.",
   "diagnostic.intro.title": "Adaptive Placement Test",
   "diagnostic.intro.body":
     "A short, adaptive test covering Quantitative (arithmetic, algebra, geometry) and Verbal (analogies, contextual errors, reading comprehension) skills. Questions get harder or easier based on your answers — there's no penalty for wrong answers, so just do your best.",
@@ -269,6 +265,10 @@ const ar: Record<TranslationKey, string> = {
   "lesson.dayStreak": "سلسلة {count} يوم",
   "lesson.heartsLost": "-{count} قلب",
   "lesson.testYourUnderstanding": "اختبر فهمك",
+  "lesson.questionBankPractice": "تدرب من بنك الأسئلة",
+  "lesson.questionBankPracticeBody": "أسئلة تدريب إضافية على هذا الموضوع، من بنك أسئلة القدرات الحقيقي — بدون أي خطر على قلوبك.",
+  "lesson.startBankPractice": "ابدأ التدريب",
+  "lesson.loadingBankPractice": "جارٍ تجهيز أسئلة التدريب...",
 
   "practice.title": "جلسة تدريب",
   "practice.subtitle": "راجع أسئلة من المهارات التي أتقنتها بالفعل. لن تخسر قلوباً — احصل على {pct}%+ لاستعادة قلب.",
@@ -300,14 +300,6 @@ const ar: Record<TranslationKey, string> = {
   "dashboard.takePlacementBody": "خذ اختبار تحديد مستوى قصير وتكيّفي، وبنجهز لك شجرة المهارات على المستوى المناسب بالضبط.",
   "dashboard.takePlacement": "ابدأ اختبار تحديد المستوى",
 
-  "diagnostic.choice.title": "اختر نوع خطة التعلم",
-  "diagnostic.choice.body": "كيف تحب تبدأ؟",
-  "diagnostic.choice.comprehensive.title": "خطة تأسيسية شاملة (من الصفر)",
-  "diagnostic.choice.comprehensive.body": "مسار متكامل يعلمك ويغطي جميع مهارات القدرات العامة الكمية واللفظية خطوة بخطوة.",
-  "diagnostic.choice.comprehensive.cta": "ابدأ الخطة الشاملة",
-  "diagnostic.choice.comprehensive.generating": "جارٍ إنشاء خطتك الشاملة...",
-  "diagnostic.choice.remedial.title": "خطة علاجية سريعة (سد الفجوات)",
-  "diagnostic.choice.remedial.body": "خطة مخصصة تركز فقط على نقاط الضعف والمهارات التي تحتاج فيها للتحسين بناءً على تشخيصك.",
   "diagnostic.intro.title": "اختبار تحديد المستوى التكيّفي",
   "diagnostic.intro.body":
     "اختبار قصير وتكيّفي يغطي القسم الكمي (الحساب، الجبر، الهندسة) والقسم اللفظي (التناظر اللفظي، الخطأ السياقي، استيعاب المقروء). الأسئلة تصعب أو تسهل حسب إجاباتك — ما فيه أي خصم على الإجابة الخاطئة، فقط أعطِ أفضل ما عندك.",

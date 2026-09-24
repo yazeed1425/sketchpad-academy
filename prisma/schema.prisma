@@ -73,9 +73,9 @@ model ActivityDay {
 
 // ───────────────────────── Learning content ─────────────────────────
 
-// Chosen up front, before/instead of the diagnostic: COMPREHENSIVE covers the full GAT
-// curriculum regardless of diagnostic results, REMEDIAL is the existing gap-focused roadmap
-// built from diagnostic mastery levels.
+// Every personalized roadmap is COMPREHENSIVE now (full GAT curriculum, informed by the
+// diagnostic's mastery results but never narrowed down to just gaps) — REMEDIAL is retired but
+// kept in the enum since the field is write-only and this avoids an unnecessary migration.
 enum PlanType {
   COMPREHENSIVE
   REMEDIAL
@@ -203,11 +203,21 @@ enum QuestionType {
   FILL_BLANK
 }
 
+// CURRICULUM = the lesson's fixed, curated quiz (shown every time the lesson starts).
+// PRACTICE_BANK = extra questions generated on demand from the Supabase GAT question bank for
+// "تدرب من بنك الاسئلة" — attached to the same lesson for topic context, but excluded from the
+// curriculum quiz query so a practice session never grows/pollutes the lesson's real quiz.
+enum QuestionSource {
+  CURRICULUM
+  PRACTICE_BANK
+}
+
 model Question {
   id            String       @id @default(cuid())
   lessonId      String
   lesson        Lesson       @relation(fields: [lessonId], references: [id], onDelete: Cascade)
   type          QuestionType @default(MULTIPLE_CHOICE)
+  source        QuestionSource @default(CURRICULUM)
   prompt        String
   optionsJson   String // JSON-encoded string[] of choices (empty for FILL_BLANK)
   correctAnswer String // exact-match answer, or index-as-string for MC/TF

@@ -15,6 +15,20 @@ function model(): string {
   return process.env.GEMINI_MODEL || "gemini-2.5-flash";
 }
 
+/**
+ * Gemini's JSON output occasionally emits a bare backslash before a LaTeX command starting with
+ * t/f/n/r/b (\times, \tan, \text, \theta, \frac, \nabla...) without escaping the backslash
+ * itself for JSON. Those five letters happen to also be real JSON string escapes (tab, form
+ * feed, newline, carriage return, backspace), so JSON.parse silently swallows the backslash and
+ * that one letter into a control character instead of erroring — corrupting the LaTeX invisibly
+ * (e.g. "\times" becomes a tab character followed by "imes", which MathText then renders as
+ * literal garbled text). None of our generated fields legitimately need a raw control character,
+ * so escape any such backslash that isn't already escaped, before parsing.
+ */
+function fixUnescapedLatexBackslashes(rawText: string): string {
+  return rawText.replace(/(?<!\\)\\([tfnrb])/g, "\\\\$1");
+}
+
 async function generateJson<T>(prompt: string, responseSchema: object): Promise<T> {
   const res = await fetch(`${API_BASE}/${model()}:generateContent?key=${apiKey()}`, {
     method: "POST",
@@ -35,7 +49,7 @@ async function generateJson<T>(prompt: string, responseSchema: object): Promise<
   if (!text) throw new Error("Gemini returned an empty response");
 
   try {
-    return JSON.parse(text) as T;
+    return JSON.parse(fixUnescapedLatexBackslashes(text)) as T;
   } catch {
     throw new Error("Gemini returned malformed JSON");
   }
@@ -186,6 +200,70 @@ export async function generateMutatedDiagnosticQuestion(params: {
 - أربعة خيارات فقط، خيار واحد صحيح فقط، والمشتتات (الخيارات الخاطئة) معقولة وليست واضحة الاستبعاد.
 - correctAnswer يجب أن يطابق نص أحد الخيارات الأربعة حرفياً تماماً.
 - درجة الصعوبة المطلوبة: "${DIFFICULTY_LABEL_AR[params.difficulty]}" — حافظ عليها في السؤال الجديد.
+- اجعل الشرح (explanation) جملة أو جملتين توضح خطوات حل السؤال الجديد بأرقامه الجديدة.
+${MATH_FORMATTING_RULE}${avoid}
+أعد النتيجة بصيغة JSON فقط حسب المخطط المطلوب، بدون أي نص إضافي.`;
+
+  const result = await generateJson<GeneratedQuestion>(prompt, QUESTION_SCHEMA);
+  validateGeneratedQuestion(result);
+  return result;
+}
+
+export interface QuestionBankReference {
+  question: string;
+  options?: string[];
+  correctAnswer?: string;
+  explanation?: string;
+}
+
+/** Generates one fresh multiple-choice practice question for a lesson's topic — no RAG reference available (or it failed), so nothing to mutate from. */
+export async function generatePracticeQuestion(params: { topic: string; avoidPrompts: string[] }): Promise<GeneratedQuestion> {
+  const avoid = params.avoidPrompts.length
+    ? `\nتجنّب تكرار أو مشابهة هذه الأسئلة السابقة في نفس جلسة التدريب:\n${params.avoidPrompts.map((p) => `- ${p}`).join("\n")}`
+    : "";
+
+  const prompt = `أنت خبير في تصميم أسئلة اختبار القدرات العامة (GAT) السعودي.
+أنشئ سؤال اختيار من متعدد باللغة العربية الفصحى للتدريب على موضوع "${params.topic}".
+المتطلبات:
+- أربعة خيارات فقط، خيار واحد صحيح فقط.
+- correctAnswer يجب أن يطابق نص أحد الخيارات الأربعة حرفياً تماماً.
+- السؤال مناسب لطالب ثانوي سعودي يستعد لاختبار القدرات.
+- اجعل الشرح (explanation) جملة أو جملتين توضح سبب صحة الإجابة.
+${MATH_FORMATTING_RULE}${avoid}
+أعد النتيجة بصيغة JSON فقط حسب المخطط المطلوب، بدون أي نص إضافي.`;
+
+  const result = await generateJson<GeneratedQuestion>(prompt, QUESTION_SCHEMA);
+  validateGeneratedQuestion(result);
+  return result;
+}
+
+/**
+ * Generates a fresh practice question by mutating a real reference question pulled via RAG from
+ * the Supabase GAT question bank — same idea as generateMutatedDiagnosticQuestion, but framed
+ * around a lesson's free-text topic instead of the diagnostic's fixed domain/subSkill/difficulty
+ * taxonomy (a lesson's topic is far more granular than the 6 diagnostic sub-skills).
+ */
+export async function generateMutatedPracticeQuestion(params: {
+  topic: string;
+  reference: QuestionBankReference;
+  avoidPrompts: string[];
+}): Promise<GeneratedQuestion> {
+  const avoid = params.avoidPrompts.length
+    ? `\nتجنّب تكرار أو مشابهة هذه الأسئلة السابقة في نفس جلسة التدريب:\n${params.avoidPrompts.map((p) => `- ${p}`).join("\n")}`
+    : "";
+  const referenceOptionsBlock = params.reference.options?.length
+    ? `\nخياراته الأصلية: ${params.reference.options.join(" / ")}${params.reference.correctAnswer ? ` (الصحيح: ${params.reference.correctAnswer})` : ""}`
+    : "";
+  const referenceExplanationBlock = params.reference.explanation ? `\nشرح الحل الأصلي: "${params.reference.explanation}"` : "";
+
+  const prompt = `أنت خبير في تصميم أسئلة اختبار القدرات العامة (GAT) السعودي.
+فيما يلي سؤال حقيقي من بنك أسئلة القدرات متعلق بموضوع "${params.topic}":
+نص السؤال المرجعي: "${params.reference.question}"${referenceOptionsBlock}${referenceExplanationBlock}
+
+مهمتك: أنشئ سؤالاً جديداً بنفس الفكرة والمفهوم وأسلوب الحل تماماً، لكن غيّر الأرقام والأسماء والسياق بحيث يبدو سؤالاً مختلفاً وليس نسخة معدّلة بشكل واضح عن الأصل. أعد حساب الإجابة الصحيحة والخيارات الأربعة من الصفر بما يطابق الأرقام الجديدة فعلياً (تحقق حسابياً من صحة الإجابة قبل إعادتها) — ممنوع نسخ الأرقام أو الأسماء الأصلية كما هي.
+المتطلبات:
+- أربعة خيارات فقط، خيار واحد صحيح فقط، والمشتتات (الخيارات الخاطئة) معقولة وليست واضحة الاستبعاد.
+- correctAnswer يجب أن يطابق نص أحد الخيارات الأربعة حرفياً تماماً.
 - اجعل الشرح (explanation) جملة أو جملتين توضح خطوات حل السؤال الجديد بأرقامه الجديدة.
 ${MATH_FORMATTING_RULE}${avoid}
 أعد النتيجة بصيغة JSON فقط حسب المخطط المطلوب، بدون أي نص إضافي.`;
@@ -351,13 +429,6 @@ ${transcriptText}
   return generateJson<LlmEvaluation>(prompt, EVALUATION_SCHEMA);
 }
 
-export interface GeneratedRoadmapQuestion {
-  prompt: string;
-  options: string[];
-  correctAnswer: string;
-  explanation: string;
-}
-
 const SKILL_ICON_KEYS = ["books", "bulb", "search", "calculator", "chart"] as const;
 type SkillIconKey = (typeof SKILL_ICON_KEYS)[number];
 
@@ -371,7 +442,6 @@ export interface GeneratedRoadmapSkill {
   prerequisites: string[];
   lessonTitle: string;
   icon: SkillIconKey;
-  questions: GeneratedRoadmapQuestion[];
 }
 
 export interface GeneratedRoadmap {
@@ -386,10 +456,6 @@ const ROADMAP_SCHEMA = {
   properties: {
     title: { type: "STRING" },
     description: { type: "STRING" },
-    // No minItems/maxItems on `milestones`/`skills` — Gemini's structured-output validator
-    // rejects the request (400 INVALID_ARGUMENT) once a 3rd array in this schema gets length
-    // bounds on top of `questions`/`options` below. The prompt states the target range in
-    // words instead, which the model follows closely enough in practice.
     milestones: {
       type: "ARRAY",
       items: {
@@ -398,6 +464,13 @@ const ROADMAP_SCHEMA = {
         required: ["title", "description"],
       },
     },
+    // Deliberately no `questions` here — that used to be embedded per skill, generating every
+    // node's full quiz upfront in this one call (100+ questions for the comprehensive plan,
+    // the reason it took 1.5-2 minutes). Questions are now generated lazily, on-demand, the
+    // first time a student actually opens that lesson (see getOrGenerateCurriculumQuestions in
+    // quizService.ts) — the same cache-on-first-open pattern already used for lesson content.
+    // This alone cuts roadmap generation down to structure only: title/description/tier/
+    // prerequisites/icon per node, no invented question content.
     skills: {
       type: "ARRAY",
       items: {
@@ -412,23 +485,8 @@ const ROADMAP_SCHEMA = {
           prerequisites: { type: "ARRAY", items: { type: "STRING" } },
           lessonTitle: { type: "STRING" },
           icon: { type: "STRING", enum: [...SKILL_ICON_KEYS] },
-          questions: {
-            type: "ARRAY",
-            minItems: 2,
-            maxItems: 3,
-            items: {
-              type: "OBJECT",
-              properties: {
-                prompt: { type: "STRING" },
-                options: { type: "ARRAY", items: { type: "STRING" }, minItems: 4, maxItems: 4 },
-                correctAnswer: { type: "STRING" },
-                explanation: { type: "STRING" },
-              },
-              required: ["prompt", "options", "correctAnswer", "explanation"],
-            },
-          },
         },
-        required: ["key", "title", "description", "milestoneTitle", "tier", "alreadyMastered", "prerequisites", "lessonTitle", "icon", "questions"],
+        required: ["key", "title", "description", "milestoneTitle", "tier", "alreadyMastered", "prerequisites", "lessonTitle", "icon"],
       },
     },
   },
@@ -440,11 +498,111 @@ export interface RoadmapEvaluationInput {
   overallSummary: string;
 }
 
-/** Designs a personalized skill-tree roadmap (with real practice lessons) from a diagnostic's results. */
-export async function generatePersonalizedRoadmap(evaluation: RoadmapEvaluationInput): Promise<GeneratedRoadmap> {
+/** Drops dangling/self prerequisites and falls back invalid icons. */
+function sanitizeRoadmap(roadmap: GeneratedRoadmap): void {
+  const validKeys = new Set(roadmap.skills.map((s) => s.key));
+  for (const skill of roadmap.skills) {
+    skill.prerequisites = skill.prerequisites.filter((k) => validKeys.has(k) && k !== skill.key);
+    if (!SKILL_ICON_KEYS.includes(skill.icon)) skill.icon = "bulb";
+  }
+}
+
+const COMPREHENSIVE_QUANTITATIVE_TOPICS = [
+  "العمليات الحسابية الأساسية وسرعة الحساب",
+  "الكسور العادية والعشرية والعمليات عليها",
+  "النسبة المئوية وقوانين الربح والخسران",
+  "التناسب الطردي والعكسي والتدرج المنتظم",
+  "حل المعادلات من الدرجة الأولى والثانية",
+  "قوانين الأسس والعمليات عليها",
+  "الجذور وتبسيط المقادير الجذرية",
+  "الهندسة: الأشكال الثنائية (المربع، المستطيل، الدائرة)",
+  "الهندسة: زوايا المثلثات والمضلعات والزوايا المتوازية",
+  "الهندسة: المجسمات والحجوم (المكعب، الأسطوانة)",
+  "المسائل الكلامية: السرعة والمسافة والزمن",
+  "المسائل الكلامية: الأعمار والإنجاز المشترك",
+  "الإحصاء: قراءة الجداول والقطاعات الدائرية",
+  "الإحصاء: المتوسط والوسيط والمنوال",
+  "المقارنات: استراتيجيات الحل السريع والخيارات",
+  "الاحتمالات ومبدأ العد الأساسي",
+];
+
+const COMPREHENSIVE_VERBAL_TOPICS = [
+  "التناظر اللفظي: العلاقات المكانية والزمنية",
+  "التناظر اللفظي: علاقات السبب والنتيجة والجزء من الكل",
+  "إكمال الجمل: فهم التناسق الدلالي وسياق النص",
+  "الخطأ السياقي: استراتيجيات اكتشاف الكلمة المخلة بالمفهوم",
+  "استيعاب المقروء: تحليل النصوص واستخراج الأفكار الرئيسة",
+  "استيعاب المقروء: عودة الضمائر واستنباط المعاني الضمنية",
+  "المفردة المخالفة واكتشاف الاختلاف الدلالي",
+];
+
+// Maps each of the 23 baseline topics to the diagnostic sub-skill it belongs to, so Gemini
+// doesn't have to freely judge the mapping itself when deciding alreadyMastered — several
+// topics are genuinely ambiguous (e.g. is "النسبة المئوية" arithmetic or algebra?) and a fixed
+// table keeps that decision consistent instead of drifting between generations. One topic
+// (probability) has no clean match to any of the 6 sub-skills and is intentionally excluded —
+// it always stays unmastered regardless of the evaluation.
+const TOPIC_SUBSKILL_GROUPS: { subSkill: $Enums.DiagnosticSubSkill; topics: string[] }[] = [
+  {
+    subSkill: "ARITHMETIC",
+    topics: [
+      "العمليات الحسابية الأساسية وسرعة الحساب",
+      "الكسور العادية والعشرية والعمليات عليها",
+      "النسبة المئوية وقوانين الربح والخسران",
+      "التناسب الطردي والعكسي والتدرج المنتظم",
+      "الإحصاء: قراءة الجداول والقطاعات الدائرية",
+      "الإحصاء: المتوسط والوسيط والمنوال",
+      "المقارنات: استراتيجيات الحل السريع والخيارات",
+    ],
+  },
+  {
+    subSkill: "ALGEBRA",
+    topics: [
+      "حل المعادلات من الدرجة الأولى والثانية",
+      "قوانين الأسس والعمليات عليها",
+      "الجذور وتبسيط المقادير الجذرية",
+      "المسائل الكلامية: السرعة والمسافة والزمن",
+      "المسائل الكلامية: الأعمار والإنجاز المشترك",
+    ],
+  },
+  {
+    subSkill: "GEOMETRY",
+    topics: [
+      "الهندسة: الأشكال الثنائية (المربع، المستطيل، الدائرة)",
+      "الهندسة: زوايا المثلثات والمضلعات والزوايا المتوازية",
+      "الهندسة: المجسمات والحجوم (المكعب، الأسطوانة)",
+    ],
+  },
+  {
+    subSkill: "ANALOGIES",
+    topics: [
+      "التناظر اللفظي: العلاقات المكانية والزمنية",
+      "التناظر اللفظي: علاقات السبب والنتيجة والجزء من الكل",
+      "المفردة المخالفة واكتشاف الاختلاف الدلالي",
+    ],
+  },
+  {
+    subSkill: "CONTEXTUAL_ERRORS",
+    topics: ["إكمال الجمل: فهم التناسق الدلالي وسياق النص", "الخطأ السياقي: استراتيجيات اكتشاف الكلمة المخلة بالمفهوم"],
+  },
+  {
+    subSkill: "READING_COMPREHENSION",
+    topics: ["استيعاب المقروء: تحليل النصوص واستخراج الأفكار الرئيسة", "استيعاب المقروء: عودة الضمائر واستنباط المعاني الضمنية"],
+  },
+];
+
+/**
+ * Designs a full GAT curriculum covering every required baseline topic, ordered easy to hard,
+ * informed by the student's diagnostic results: topics whose sub-skill the diagnostic found
+ * already mastered are pre-completed, but nothing is ever dropped from the tree just because
+ * its sub-skill tested well — this is a comprehensive plan, not a narrowed-down one.
+ */
+export async function generateComprehensiveRoadmap(evaluation: RoadmapEvaluationInput): Promise<GeneratedRoadmap> {
+  const totalTopics = COMPREHENSIVE_QUANTITATIVE_TOPICS.length + COMPREHENSIVE_VERBAL_TOPICS.length;
   const breakdown = evaluation.subSkills
     .map((s) => `- ${SUBSKILL_LABEL_AR[s.subSkill]}: ${s.mastery === "MASTERED" ? "متقن" : s.mastery === "DEVELOPING" ? "قيد التطور" : "فجوة مهارية"} — ${s.rationale}`)
     .join("\n");
+  const masteryGroupLines = TOPIC_SUBSKILL_GROUPS.map((g) => `- ${SUBSKILL_LABEL_AR[g.subSkill]}: ${g.topics.join("، ")}`).join("\n");
 
   const prompt = `أنت مصمم مناهج خبير في اختبار القدرات العامة (GAT) السعودي.
 نتيجة تقييم طالب في اختبار تحديد مستوى تكيّفي:
@@ -452,71 +610,28 @@ ${breakdown}
 
 ملخص عام: ${evaluation.overallSummary}
 
-صمّم خطة تعلّم شخصية شاملة (شجرة مهارات) لهذا الطالب تحديداً بناءً على نتيجته، تغطي القسمين الكمي واللفظي معاً:
-- من 10 إلى 16 عقدة مهارة (skills) إجمالاً موزّعة على المهارات الست كلها (لا تتجاهل أي مهارة حتى لو كانت متقنة). خصّص لكل مهارة "فجوة مهارية" عقدتين إلى ثلاث عقد متدرجة الصعوبة كنقاط بداية أساسية (أدنى tier)، ولكل مهارة "قيد التطور" عقدة إلى عقدتين لتعزيزها (tier أوسط)، ولكل مهارة "متقنة" عقدة تحدٍّ واحدة على الأقل للتثبيت (أعلى tier).
-- قسّم الخطة إلى عدة مراحل (milestones) واضحة ومنصّفة بشكل جيد — من 4 إلى 8 مراحل، كل مرحلة مخصصة لمهارة فرعية واحدة أو مهارتين مرتبطتين موضوعياً ضمن نفس القسم (الكمي أو اللفظي). لا تجمع كل العقد في مرحلة واحدة كبيرة. رتّب المراحل بحيث تأتي مراحل الفجوات أولاً، ثم مراحل التعزيز، ثم مرحلة التحدي الختامية إن وجدت.
-- لكل عقدة: key فريد بالإنجليزية (kebab-case)، عنوان ووصف بالعربية، milestoneTitle (اسم إحدى المراحل أعلاه بالضبط)، tier (رقم صف يبدأ من 0 ويعكس ترتيب المرحلة)، alreadyMastered (true فقط إذا كانت هذه العقدة تمثل مباشرة مهارة صنّفها التقييم كـ"متقن")، وقائمة prerequisites (مفاتيح عقد أخرى في نفس القائمة يجب إتقانها أولاً — عقد tier 0 غالباً بدون متطلبات سابقة).
-- لكل عقدة: درس واحد (lessonTitle) يحتوي على 2-3 أسئلة اختيار من متعدد بالعربية (4 خيارات، خيار صحيح واحد يطابق correctAnswer حرفياً، مع شرح موجز) تدرّب الطالب تحديداً على الفجوة أو نقطة الضعف المحددة في تلك المهارة.
-- لكل عقدة: اختر icon واحداً يناسب موضوعها من هذه القيم فقط: books (قراءة/نصوص/لغة)، bulb (مفاهيم عامة وأفكار)، search (تحليل/اكتشاف/تدقيق)، calculator (حساب/جبر/عمليات رياضية)، chart (مهارة ختامية أو تحدٍّ متقدم مركّب). ملاحظة: العقد المقفلة (تعتمد على متطلبات لم تُتقَن بعد) والعقد المتقنة مسبقاً تُعرض بشارتها الخاصة بغض النظر عن icon، فلا داعي لمراعاة ذلك.
-- أعطِ الخطة عنواناً ووصفاً عاماً بالعربية (title, description).
-${MATH_FORMATTING_RULE}
-أعد النتيجة بصيغة JSON فقط حسب المخطط المطلوب.`;
+صمّم خطة تعلّم تأسيسية شاملة تغطي القسمين الكمي واللفظي بالكامل، مبنية على نتيجة تقييم هذا الطالب أعلاه.
 
-  const roadmap = await generateJson<GeneratedRoadmap>(prompt, ROADMAP_SCHEMA);
-  sanitizeRoadmap(roadmap);
-  return roadmap;
-}
+هذه قائمة إلزامية (baseline) من ${totalTopics} مهارة فرعية مستقلة يجب تغطيتها بالكامل بغض النظر عن نتيجة التقييم — كل نقطة في القائمة تمثّل عقدة (node) مستقلة بذاتها في الخطة، ممنوع دمج نقطتين أو أكثر من القائمة في عقدة واحدة، وممنوع إسقاط أي نقطة منها حتى لو كانت مهارتها المقابلة "متقنة":
 
-/** Drops dangling/self prerequisites, falls back invalid icons, and fixes correctAnswer/options drift — shared by both roadmap generators. */
-function sanitizeRoadmap(roadmap: GeneratedRoadmap): void {
-  const validKeys = new Set(roadmap.skills.map((s) => s.key));
-  for (const skill of roadmap.skills) {
-    skill.prerequisites = skill.prerequisites.filter((k) => validKeys.has(k) && k !== skill.key);
-    if (!SKILL_ICON_KEYS.includes(skill.icon)) skill.icon = "bulb";
-    for (const q of skill.questions) {
-      if (!q.options.includes(q.correctAnswer)) {
-        const trimmedMatch = q.options.find((o) => o.trim() === q.correctAnswer.trim());
-        if (trimmedMatch) q.correctAnswer = trimmedMatch;
-      }
-    }
-  }
-}
+القسم الكمي (${COMPREHENSIVE_QUANTITATIVE_TOPICS.length} عقدة على الأقل):
+${COMPREHENSIVE_QUANTITATIVE_TOPICS.map((t, i) => `${i + 1}. ${t}`).join("\n")}
 
-const COMPREHENSIVE_QUANTITATIVE_TOPICS = [
-  "الجبر والمعادلات",
-  "الأسس والجذور",
-  "الهندسة والمحيط والمساحات",
-  "زوايا المثلثات والمضلعات",
-  "النسب المئوية والكسور",
-  "المسائل الكلامية",
-  "الإحصاء والرسوم البيانية",
-  "المقارنات",
-  "الاحتمالات والتوافيق",
-];
+القسم اللفظي (${COMPREHENSIVE_VERBAL_TOPICS.length} عقدة على الأقل):
+${COMPREHENSIVE_VERBAL_TOPICS.map((t, i) => `${COMPREHENSIVE_QUANTITATIVE_TOPICS.length + i + 1}. ${t}`).join("\n")}
 
-const COMPREHENSIVE_VERBAL_TOPICS = ["التناظر اللفظي", "إكمال الجمل", "الخطأ السياقي", "استيعاب المقروء والتحليل النصي", "المفردة المخالفة"];
-
-/**
- * Designs a full "from scratch" GAT curriculum covering every required topic, ordered easy to
- * hard — for a student who chose the comprehensive plan instead of the diagnostic-driven
- * remedial one. No diagnostic input: nothing is pre-assessed, so every node starts unmastered.
- */
-export async function generateComprehensiveRoadmap(): Promise<GeneratedRoadmap> {
-  const prompt = `أنت مصمم مناهج خبير في اختبار القدرات العامة (GAT) السعودي.
-صمّم خطة تعلّم تأسيسية شاملة "من الصفر" تغطي القسمين الكمي واللفظي بالكامل لطالب لم يخضع لأي تقييم مسبق — لا تفترض أنه متقن أي شيء.
-
-يجب أن تغطي الخطة كل موضوع من المواضيع التالية بعقدة واحدة على الأقل (والمواضيع الأوسع كالجبر والهندسة تستحق عقدتين متدرجتين: أساسي ثم متقدم):
-القسم الكمي: ${COMPREHENSIVE_QUANTITATIVE_TOPICS.join("، ")}.
-القسم اللفظي: ${COMPREHENSIVE_VERBAL_TOPICS.join("، ")}.
+لتحديد العقد المتقنة مسبقاً (alreadyMastered)، استخدم هذا التصنيف الثابت الذي يربط كل موضوع بمهارة التقييم المقابلة له بالضبط (لا تجتهد بربط مختلف):
+${masteryGroupLines}
+- بدون تصنيف (يبقى alreadyMastered = false دائماً بغض النظر عن نتيجة التقييم): الاحتمالات ومبدأ العد الأساسي
 
 المتطلبات:
-- من 18 إلى 26 عقدة مهارة (skills) إجمالاً، تغطي كل المواضيع أعلاه بلا استثناء — لا تُسقط أي موضوع.
-- alreadyMastered يجب أن تكون false لكل عقدة بلا استثناء (لا يوجد تقييم سابق).
-- رتّب المراحل (milestones) بتسلسل تدريجي منطقي من الأسهل للأصعب: ابدأ بأساسيات الحس العددي والمفردات اللغوية، ثم انتقل تدريجياً للمواضيع الأكثر تعقيداً (الجبر المتقدم، الهندسة التحليلية، استيعاب المقروء المركّب...)، وانتهِ بمرحلة تطبيقية شاملة. من 6 إلى 10 مراحل، كل مرحلة لموضوع واحد أو موضوعين مرتبطين ضمن نفس القسم.
-- لكل عقدة: key فريد بالإنجليزية (kebab-case)، عنوان ووصف بالعربية، milestoneTitle (اسم إحدى المراحل أعلاه بالضبط)، tier (رقم صف يبدأ من 0 ويعكس ترتيب المرحلة)، وقائمة prerequisites (مفاتيح عقد أخرى في نفس القائمة يجب إتقانها أولاً — عقد tier 0 غالباً بدون متطلبات سابقة).
-- لكل عقدة: درس واحد (lessonTitle) يحتوي على 2-3 أسئلة اختيار من متعدد بالعربية (4 خيارات، خيار صحيح واحد يطابق correctAnswer حرفياً، مع شرح موجز) تعلّم أساسيات ذلك الموضوع تحديداً.
-- لكل عقدة: اختر icon واحداً يناسب موضوعها من هذه القيم فقط: books (قراءة/نصوص/لغة)، bulb (مفاهيم عامة وأفكار)، search (تحليل/اكتشاف/تدقيق)، calculator (حساب/جبر/عمليات رياضية)، chart (مهارة ختامية أو تحدٍّ متقدم مركّب).
-- أعطِ الخطة عنواناً ووصفاً عاماً بالعربية (title, description) يعكسان أنها خطة تأسيسية شاملة من الصفر.
+- عقدة واحدة مستقلة على الأقل لكل نقطة من القائمة أعلاه (لا تدمج، لا تُسقط) — أي لا يقل إجمالي عدد العقد (skills) عن ${totalTopics}. المواضيع التي تحتاج تدرجاً إضافياً (مثل معادلات الدرجة الأولى والثانية، أو استيعاب المقروء) يمكن أن تنقسم لأكثر من عقدة، فيصل الإجمالي إلى ٢٦-٣٠ عقدة إذا رأيت ذلك مناسباً — لكن لا تقل أبداً عن ${totalTopics}.
+- alreadyMastered يجب أن تكون true فقط للعقد اللي موضوعها مصنّف أعلاه ضمن مهارة صنّفها التقييم كـ"متقن" بالضبط — كل عقدة أخرى (بما فيها كل عقد الاحتمالات، وأي عقدة موضوعها ضمن مهارة "قيد التطور" أو "فجوة مهارية") تكون alreadyMastered = false.
+- قسّم الخطة إلى أسابيع دراسية متتالية (milestones) بتسلسل تدريجي منطقي من الأسهل للأصعب: ابدأ بأساسيات الحس العددي والمفردات اللغوية، ثم انتقل تدريجياً للمواضيع الأكثر تعقيداً، وانتهِ بأسبوع تطبيقي شامل. كل أسبوع يجب أن يحتوي على 4 إلى 6 عقد فرعية بالضبط (لا نودين فقط) — اضبط عدد الأسابيع تبعاً لذلك (يكون عادةً بين 4 و6 أسابيع بما إن إجمالي العقد لا يقل عن ${totalTopics}). عنوان كل مرحلة (milestoneTitle) يجب أن يبدأ بصيغة "الأسبوع N: " متبوعاً بوصف قصير لموضوعها (مثل "الأسبوع 1: الحس العددي والمفردات الأساسية")، حيث N رقم تسلسلي يبدأ من 1.
+- لكل عقدة: key فريد بالإنجليزية (kebab-case)، عنوان ووصف بالعربية يعكسان تحديداً نقطة واحدة من القائمة أعلاه، milestoneTitle (اسم أحد الأسابيع أعلاه بالضبط)، tier (رقم صف يبدأ من 0 ويعكس ترتيب الأسبوع)، وقائمة prerequisites (مفاتيح عقد أخرى في نفس القائمة يجب إتقانها أولاً — عقد tier 0 غالباً بدون متطلبات سابقة).
+- لكل عقدة: عنوان درس واحد (lessonTitle) يصف تدريباً مكثفاً على أساسيات ذلك الموضوع تحديداً (لا تولّد أسئلة الدرس هنا، فقط عنوانه — الأسئلة تُنشأ لاحقاً عند فتح الدرس فعلياً).
+- لكل عقدة: اختر icon واحداً يناسب موضوعها من هذه القيم فقط: books (قراءة/نصوص/لغة)، bulb (مفاهيم عامة وأفكار)، search (تحليل/اكتشاف/تدقيق)، calculator (حساب/جبر/عمليات رياضية)، chart (مهارة ختامية أو تحدٍّ متقدم مركّب). ملاحظة: العقد المقفلة (تعتمد على متطلبات لم تُتقَن بعد) والعقد المتقنة مسبقاً تُعرض بشارتها الخاصة بغض النظر عن icon، فلا داعي لمراعاة ذلك.
+- أعطِ الخطة عنواناً ووصفاً عاماً بالعربية (title, description) يعكسان أنها خطة تأسيسية شاملة مبنية على نتيجة تقييم الطالب.
 ${MATH_FORMATTING_RULE}
 أعد النتيجة بصيغة JSON فقط حسب المخطط المطلوب.`;
 

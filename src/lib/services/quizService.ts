@@ -4,11 +4,23 @@ import { grantXp } from "@/lib/services/xpService";
 import { incrementQuestProgress } from "@/lib/services/questService";
 import { recordSkillScore } from "@/lib/services/skillService";
 import { checkAndAwardBadges } from "@/lib/services/badgeService";
-import { generateLessonContent, generateEmbedding, type LessonContent, type LessonReference } from "@/lib/llm/gemini";
+import {
+  generateLessonContent,
+  generateEmbedding,
+  generatePracticeQuestion,
+  generateMutatedPracticeQuestion,
+  type LessonContent,
+  type LessonReference,
+  type QuestionBankReference,
+  type GeneratedQuestion,
+} from "@/lib/llm/gemini";
 import { getSupabase } from "@/lib/supabase";
+import type { $Enums } from "@/generated/prisma/client";
 
 const PRACTICE_QUESTION_COUNT = 5;
 const PRACTICE_PASS_RATIO = 0.7;
+const QUESTION_BANK_PRACTICE_COUNT = 5;
+const CURRICULUM_QUESTION_COUNT = 5;
 
 // Below this cosine similarity, the closest match in the question bank is too unrelated
 // to the lesson's topic to be worth grounding the example on.
@@ -40,6 +52,63 @@ async function findReference(topic: string): Promise<LessonReference | undefined
     console.error("RAG lookup failed, falling back to unreferenced lesson content:", err);
     return undefined;
   }
+}
+
+/**
+ * Looks up up to `count` real GAT questions for a topic via vector search against the Supabase
+ * question bank, for "تدرب من بنك الاسئلة" to mutate into fresh practice questions. Same
+ * never-throws contract as findReference — an empty array (RAG unavailable, or the topic has no
+ * good match, e.g. most verbal topics aren't covered by this bank) just means the caller falls
+ * back to unreferenced generation for that many questions.
+ */
+async function findQuestionBankReferences(topic: string, count: number): Promise<QuestionBankReference[]> {
+  try {
+    const embedding = await generateEmbedding(topic);
+    const { data, error } = await getSupabase().rpc("match_qudurat_questions_all", {
+      query_embedding: embedding,
+      match_count: count,
+    });
+    if (error) throw error;
+
+    return ((data ?? []) as { similarity: number; question_text: string; options: unknown; correct_answer: string; explanation: string }[])
+      .filter((row) => row.similarity >= RAG_SIMILARITY_FLOOR)
+      .map((row) => ({
+        question: row.question_text,
+        options: Array.isArray(row.options) ? (row.options as string[]) : undefined,
+        correctAnswer: row.correct_answer ?? undefined,
+        explanation: row.explanation ?? undefined,
+      }));
+  } catch (err) {
+    console.error("Question bank RAG lookup failed, falling back to unreferenced practice questions:", err);
+    return [];
+  }
+}
+
+/**
+ * Generates `count` fresh multiple-choice questions for a topic: mutates as many real Supabase
+ * question-bank references as were found, then fills any remainder with unreferenced generation
+ * (covers topics the bank doesn't have, e.g. most verbal ones — never blocks on RAG). Shared by
+ * "تدرب من بنك الاسئلة" and by lazy curriculum-question generation on a lesson's first open.
+ */
+async function generateQuestionSet(topic: string, count: number): Promise<GeneratedQuestion[]> {
+  const references = await findQuestionBankReferences(topic, count);
+
+  const generated: GeneratedQuestion[] = [];
+  const avoidPrompts: string[] = [];
+  for (const reference of references) {
+    const question = await generateMutatedPracticeQuestion({ topic, reference, avoidPrompts }).catch((err) => {
+      console.error("Question mutation failed, falling back to unreferenced generation:", err);
+      return generatePracticeQuestion({ topic, avoidPrompts });
+    });
+    generated.push(question);
+    avoidPrompts.push(question.prompt);
+  }
+  while (generated.length < count) {
+    const question = await generatePracticeQuestion({ topic, avoidPrompts });
+    generated.push(question);
+    avoidPrompts.push(question.prompt);
+  }
+  return generated;
 }
 
 export class NoHeartsError extends Error {
@@ -78,18 +147,67 @@ export async function startPractice(userId: string) {
   };
 }
 
+/**
+ * Starts a heart-free practice session for one lesson, sourced from the real Supabase GAT
+ * question bank when a good topical match exists (mutated into fresh questions the same way
+ * diagnostic questions are), falling back to unreferenced generation to fill out the rest.
+ * Persisted as PRACTICE_BANK questions on the same lesson so grading works like any other
+ * question, but excluded from the lesson's own curriculum quiz (see startAttempt above).
+ */
+export async function startQuestionBankPractice(userId: string, lessonId: string) {
+  const lesson = await db.lesson.findUniqueOrThrow({
+    where: { id: lessonId },
+    include: { skill: { select: { title: true, description: true } } },
+  });
+  const topic = `${lesson.skill.title}: ${lesson.title}`;
+  const generated = await generateQuestionSet(topic, QUESTION_BANK_PRACTICE_COUNT);
+
+  const questions = await Promise.all(
+    generated.map((g, order) =>
+      db.question.create({
+        data: {
+          lessonId,
+          source: "PRACTICE_BANK",
+          type: "MULTIPLE_CHOICE",
+          prompt: g.prompt,
+          optionsJson: JSON.stringify(g.options),
+          correctAnswer: g.correctAnswer,
+          explanation: g.explanation,
+          order,
+        },
+      })
+    )
+  );
+
+  const attempt = await db.quizAttempt.create({ data: { userId, lessonId, isPractice: true } });
+
+  return {
+    attemptId: attempt.id,
+    questions: questions.map((q) => ({
+      id: q.id,
+      type: q.type,
+      prompt: q.prompt,
+      options: JSON.parse(q.optionsJson) as string[],
+    })),
+  };
+}
+
 export async function startAttempt(userId: string, lessonId: string) {
   const hearts = await getResolvedHearts(userId);
   if (hearts.hearts <= 0) throw new NoHeartsError();
 
   const lesson = await db.lesson.findUniqueOrThrow({
     where: { id: lessonId },
-    include: { questions: { orderBy: { order: "asc" } }, skill: { select: { pathId: true, title: true, description: true } } },
+    include: {
+      questions: { where: { source: "CURRICULUM" }, orderBy: { order: "asc" } },
+      skill: { select: { pathId: true, title: true, description: true } },
+    },
   });
 
-  const [attempt, content] = await Promise.all([
+  const [attempt, content, questions] = await Promise.all([
     db.quizAttempt.create({ data: { userId, lessonId } }),
     getOrGenerateLessonContent(lesson),
+    getOrGenerateCurriculumQuestions(lesson),
   ]);
 
   return {
@@ -97,13 +215,49 @@ export async function startAttempt(userId: string, lessonId: string) {
     lessonTitle: lesson.title,
     pathId: lesson.skill.pathId,
     content,
-    questions: lesson.questions.map((q) => ({
+    questions: questions.map((q) => ({
       id: q.id,
       type: q.type,
       prompt: q.prompt,
       options: JSON.parse(q.optionsJson) as string[],
     })),
   };
+}
+
+/**
+ * Returns the lesson's curriculum quiz, generating and persisting it (RAG-grounded when
+ * possible, via the same generateQuestionSet used for question-bank practice) the first time
+ * the lesson is opened — roadmap creation no longer bundles every node's questions upfront, so
+ * this is where they actually get created. Cached from then on (a lesson never regenerates its
+ * curriculum quiz once it exists, same as lesson content).
+ */
+async function getOrGenerateCurriculumQuestions(lesson: {
+  id: string;
+  title: string;
+  skill: { title: string; description: string };
+  questions: { id: string; type: $Enums.QuestionType; prompt: string; optionsJson: string }[];
+}) {
+  if (lesson.questions.length > 0) return lesson.questions;
+
+  const topic = `${lesson.skill.title}: ${lesson.title}`;
+  const generated = await generateQuestionSet(topic, CURRICULUM_QUESTION_COUNT);
+
+  return Promise.all(
+    generated.map((g, order) =>
+      db.question.create({
+        data: {
+          lessonId: lesson.id,
+          source: "CURRICULUM",
+          type: "MULTIPLE_CHOICE",
+          prompt: g.prompt,
+          optionsJson: JSON.stringify(g.options),
+          correctAnswer: g.correctAnswer,
+          explanation: g.explanation,
+          order,
+        },
+      })
+    )
+  );
 }
 
 /** Returns the lesson's cached explanatory content, generating and persisting it via Gemini (RAG-grounded when possible) on first view. */
