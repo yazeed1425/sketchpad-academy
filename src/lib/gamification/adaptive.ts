@@ -35,7 +35,9 @@ export interface AdaptiveBounds {
  * twice in a row (clear mastery — escalate/advance), pinned at the floor and missing twice in a
  * row (clear gap), or the max question count has been reached. Below minQuestions, never
  * resolved. Mirrors the diagnostic's per-sub-skill stopping rule (see subSkillIsResolved in
- * diagnostic.ts), generalized to any single response stream.
+ * diagnostic.ts), generalized to any single response stream. Ending immediately on a confirmed
+ * gap is correct for the diagnostic (its job is fast classification) — see isQuizResolved for why
+ * a lesson/practice quiz needs different behavior for that same case.
  */
 export function isResolved(responses: AdaptiveResponseSummary[], bounds: AdaptiveBounds): boolean {
   if (responses.length < bounds.minQuestions) return false;
@@ -45,6 +47,23 @@ export function isResolved(responses: AdaptiveResponseSummary[], bounds: Adaptiv
   const allHardCorrect = lastTwo.length === 2 && lastTwo.every((r) => r.difficulty === "HARD" && r.isCorrect);
   const allEasyWrong = lastTwo.length === 2 && lastTwo.every((r) => r.difficulty === "EASY" && !r.isCorrect);
   return allHardCorrect || allEasyWrong;
+}
+
+/**
+ * Same ceiling/mastery early-stop as isResolved, but deliberately does NOT end the attempt just
+ * because a gap was detected (two EASY-wrong in a row) — a lesson/practice quiz should show
+ * remediation and give the student a real chance to redeem themselves at a lower difficulty (the
+ * "Low Performance" branch of the adaptive-gamification research's Fig. 2: remediate, THEN
+ * re-test), not end the moment struggling is confirmed the way the diagnostic correctly does.
+ * needsRemediation still fires on the same gap pattern; the quiz just keeps going (up to
+ * maxQuestions) afterward instead of quietly completing.
+ */
+export function isQuizResolved(responses: AdaptiveResponseSummary[], bounds: AdaptiveBounds): boolean {
+  if (responses.length < bounds.minQuestions) return false;
+  if (responses.length >= bounds.maxQuestions) return true;
+
+  const lastTwo = responses.slice(-2);
+  return lastTwo.length === 2 && lastTwo.every((r) => r.difficulty === "HARD" && r.isCorrect);
 }
 
 /**

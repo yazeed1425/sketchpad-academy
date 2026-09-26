@@ -4,7 +4,7 @@ import { grantXp } from "@/lib/services/xpService";
 import { incrementQuestProgress } from "@/lib/services/questService";
 import { recordSkillScore } from "@/lib/services/skillService";
 import { checkAndAwardBadges } from "@/lib/services/badgeService";
-import { planNextDifficulty, isResolved, needsRemediation, type AdaptiveResponseSummary, type AdaptiveBounds } from "@/lib/gamification/adaptive";
+import { planNextDifficulty, isQuizResolved, needsRemediation, type AdaptiveResponseSummary, type AdaptiveBounds } from "@/lib/gamification/adaptive";
 import {
   generateLessonContent,
   generateEmbedding,
@@ -351,7 +351,7 @@ export async function getQuizState(userId: string, attemptId: string): Promise<Q
   if (attempt.userId !== userId) throw new Error("Forbidden");
 
   const responseSummaries: AdaptiveResponseSummary[] = attempt.responses.map((r) => ({ difficulty: r.question.difficulty, isCorrect: r.isCorrect }));
-  if (attempt.completedAt || isResolved(responseSummaries, ADAPTIVE_QUIZ_BOUNDS)) {
+  if (attempt.completedAt || isQuizResolved(responseSummaries, ADAPTIVE_QUIZ_BOUNDS)) {
     return { status: "ready-to-complete", attemptId };
   }
 
