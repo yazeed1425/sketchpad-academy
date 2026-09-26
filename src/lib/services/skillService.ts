@@ -17,7 +17,8 @@ export async function initializeSkillProgressForEnrollment(userId: string, pathI
         create: { userId, skillId: skill.id, status: skill.prerequisites.length === 0 ? "UNLOCKED" : "LOCKED" },
         update: {},
       })
-    )
+    ),
+    { timeout: 20000 }
   );
 }
 

@@ -84,7 +84,8 @@ export async function closeWeek(wId: string) {
           where: { userId_divisionId: { userId: o.userId, divisionId: division.id } },
           data: { rank: o.rank, result: o.result },
         })
-      )
+      ),
+      { timeout: 20000 }
     );
   }
 }
