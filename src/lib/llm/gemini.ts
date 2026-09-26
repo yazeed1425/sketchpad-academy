@@ -551,6 +551,11 @@ export interface GeneratedRoadmapSkill {
   milestoneTitle: string;
   tier: number;
   alreadyMastered: boolean;
+  // The mastery level (of this skill's underlying diagnostic sub-skill/topic) that alreadyMastered
+  // was itself derived from — persisted on the Skill row (Skill.diagnosedMastery) so
+  // checkAndAwardBadges can later reward mastering a skill that started as GAP/DEVELOPING, not
+  // just alreadyMastered's coarser true/false.
+  mastery: $Enums.MasteryLevel;
   prerequisites: string[];
   lessonTitle: string;
   icon: SkillIconKey;
@@ -602,13 +607,14 @@ const ROADMAP_SCHEMA = {
           milestoneTitle: { type: "STRING" },
           tier: { type: "INTEGER" },
           alreadyMastered: { type: "BOOLEAN" },
+          mastery: { type: "STRING", enum: ["GAP", "DEVELOPING", "MASTERED"] },
           prerequisites: { type: "ARRAY", items: { type: "STRING" } },
           lessonTitle: { type: "STRING" },
           icon: { type: "STRING", enum: [...SKILL_ICON_KEYS] },
           sourceTopicName: { type: "STRING" },
           domainLabel: { type: "STRING" },
         },
-        required: ["key", "title", "description", "milestoneTitle", "tier", "alreadyMastered", "prerequisites", "lessonTitle", "icon"],
+        required: ["key", "title", "description", "milestoneTitle", "tier", "alreadyMastered", "mastery", "prerequisites", "lessonTitle", "icon"],
       },
     },
   },
@@ -620,12 +626,20 @@ export interface RoadmapEvaluationInput {
   overallSummary: string;
 }
 
-/** Drops dangling/self prerequisites and falls back invalid icons. */
+const MASTERY_LEVELS: $Enums.MasteryLevel[] = ["GAP", "DEVELOPING", "MASTERED"];
+
+/** Drops dangling/self prerequisites, falls back invalid icons, and normalizes mastery/alreadyMastered against each other. */
 function sanitizeRoadmap(roadmap: GeneratedRoadmap): void {
   const validKeys = new Set(roadmap.skills.map((s) => s.key));
   for (const skill of roadmap.skills) {
     skill.prerequisites = skill.prerequisites.filter((k) => validKeys.has(k) && k !== skill.key);
     if (!SKILL_ICON_KEYS.includes(skill.icon)) skill.icon = "bulb";
+    if (!MASTERY_LEVELS.includes(skill.mastery)) skill.mastery = "DEVELOPING";
+    // alreadyMastered is the ground truth for auto-completion (generateAndAssignComprehensivePath
+    // acts on it directly) — keep mastery consistent with it rather than trusting two
+    // independently-generated fields to agree.
+    if (skill.alreadyMastered) skill.mastery = "MASTERED";
+    else if (skill.mastery === "MASTERED") skill.mastery = "DEVELOPING";
   }
 }
 
@@ -749,6 +763,7 @@ ${masteryGroupLines}
 المتطلبات:
 - عقدة واحدة مستقلة على الأقل لكل نقطة من القائمة أعلاه (لا تدمج، لا تُسقط) — أي لا يقل إجمالي عدد العقد (skills) عن ${totalTopics}. المواضيع التي تحتاج تدرجاً إضافياً (مثل معادلات الدرجة الأولى والثانية، أو استيعاب المقروء) يمكن أن تنقسم لأكثر من عقدة، فيصل الإجمالي إلى ٢٦-٣٠ عقدة إذا رأيت ذلك مناسباً — لكن لا تقل أبداً عن ${totalTopics}.
 - alreadyMastered يجب أن تكون true فقط للعقد اللي موضوعها مصنّف أعلاه ضمن مهارة صنّفها التقييم كـ"متقن" بالضبط — كل عقدة أخرى (بما فيها كل عقد الاحتمالات، وأي عقدة موضوعها ضمن مهارة "قيد التطور" أو "فجوة مهارية") تكون alreadyMastered = false.
+- لكل عقدة: mastery يجب أن يطابق تصنيف التقييم لمهارتها المقابلة بالضبط: MASTERED إن كانت "متقن" (ويجب أن يطابق alreadyMastered = true حينها)، DEVELOPING إن كانت "قيد التطور"، GAP إن كانت "فجوة مهارية". عقد الاحتمالات (بدون تصنيف) تكون دائماً mastery = GAP.
 - قسّم الخطة إلى أسابيع دراسية متتالية (milestones) بتسلسل تدريجي منطقي من الأسهل للأصعب: ابدأ بأساسيات الحس العددي والمفردات اللغوية، ثم انتقل تدريجياً للمواضيع الأكثر تعقيداً، وانتهِ بأسبوع تطبيقي شامل. كل أسبوع يجب أن يحتوي على 4 إلى 6 عقد فرعية بالضبط (لا نودين فقط) — اضبط عدد الأسابيع تبعاً لذلك (يكون عادةً بين 4 و6 أسابيع بما إن إجمالي العقد لا يقل عن ${totalTopics}). عنوان كل مرحلة (milestoneTitle) يجب أن يبدأ بصيغة "الأسبوع N: " متبوعاً بوصف قصير لموضوعها (مثل "الأسبوع 1: الحس العددي والمفردات الأساسية")، حيث N رقم تسلسلي يبدأ من 1.
 - لكل عقدة: key فريد بالإنجليزية (kebab-case)، عنوان ووصف بالعربية يعكسان تحديداً نقطة واحدة من القائمة أعلاه، milestoneTitle (اسم أحد الأسابيع أعلاه بالضبط)، tier (رقم صف يبدأ من 0 ويعكس ترتيب الأسبوع)، وقائمة prerequisites (مفاتيح عقد أخرى في نفس القائمة يجب إتقانها أولاً — عقد tier 0 غالباً بدون متطلبات سابقة).
 - لكل عقدة: عنوان درس واحد (lessonTitle) يصف تدريباً مكثفاً على أساسيات ذلك الموضوع تحديداً (لا تولّد أسئلة الدرس هنا، فقط عنوانه — الأسئلة تُنشأ لاحقاً عند فتح الدرس فعلياً).
@@ -947,6 +962,7 @@ ${input.topics.map((t, i) => `${i + 1}. ${t.topic}`).join("\n")}
 المتطلبات:
 - عقدة واحدة مستقلة على الأقل لكل نقطة أعلاه (لا تدمج، لا تُسقط) — أي لا يقل إجمالي عدد العقد (skills) عن ${totalTopics}. المواضيع الواسعة يمكن أن تنقسم لأكثر من عقدة إذا رأيت ذلك مناسباً، لكن لا تقل أبداً عن ${totalTopics}.
 - alreadyMastered يجب أن تكون true فقط للعقد التي موضوعها مصنّف "متقن" أعلاه بالضبط — كل عقدة أخرى (قيد التطور أو فجوة مهارية) تكون alreadyMastered = false.
+- لكل عقدة: mastery يجب أن يطابق تصنيف الموضوع المقابل لها أعلاه بالضبط: MASTERED إن كان "متقن" (ويجب أن يطابق alreadyMastered = true حينها)، DEVELOPING إن كان "قيد التطور"، GAP إن كان "فجوة مهارية".
 - قسّم الخطة إلى أسابيع دراسية متتالية (milestones) بتسلسل تدريجي منطقي من الأسهل للأصعب. كل أسبوع يحتوي على 3 إلى 6 عقد فرعية. عنوان كل مرحلة (milestoneTitle) يجب أن يبدأ بصيغة "الأسبوع N: " متبوعاً بوصف قصير لموضوعها، حيث N رقم تسلسلي يبدأ من 1.
 - لكل عقدة: key فريد بالإنجليزية (kebab-case)، عنوان ووصف بالعربية يعكسان تحديداً نقطة واحدة من القائمة أعلاه، milestoneTitle (اسم أحد الأسابيع أعلاه بالضبط)، tier (رقم صف يبدأ من 0 ويعكس ترتيب الأسبوع)، وقائمة prerequisites (مفاتيح عقد أخرى في نفس القائمة يجب إتقانها أولاً — عقد tier 0 غالباً بدون متطلبات سابقة).
 - لكل عقدة: sourceTopicName يجب أن يطابق بالضبط (نفس الأحرف) اسم إحدى النقاط في القائمة الرقمية أعلاه — هذا إلزامي لكل عقدة بلا استثناء، حتى لو انقسمت نقطة واحدة لعدة عقد (تحمل كلها نفس sourceTopicName).

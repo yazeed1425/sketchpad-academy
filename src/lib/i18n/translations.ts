@@ -157,6 +157,12 @@ const en = {
   "profile.currentStreak": "Current streak",
   "profile.bestStreak": "Best streak",
   "profile.badges": "Badges",
+  "profile.masteryTracker": "Your Mastery Tracker",
+  "profile.masteryTrackerHint": "Your own progress, at your own pace — not compared to anyone else.",
+  "profile.weakTopicsMastered": "You've turned {count} weak spot(s) into strengths",
+  "profile.privacy": "Privacy",
+  "profile.leaderboardAnonymous": "Hide my name on leaderboards",
+  "profile.leaderboardAnonymousHint": "Other students will see you as an anonymous learner. You'll still see your own name and rank.",
 
   "quest.xpSuffix": "+{xp} XP",
 
@@ -396,6 +402,12 @@ const ar: Record<TranslationKey, string> = {
   "profile.currentStreak": "السلسلة الحالية",
   "profile.bestStreak": "أفضل سلسلة",
   "profile.badges": "الأوسمة",
+  "profile.masteryTracker": "متتبّع إتقانك",
+  "profile.masteryTrackerHint": "تقدمك الشخصي، بوتيرتك الخاصة — بدون مقارنة بأحد.",
+  "profile.weakTopicsMastered": "حوّلت {count} نقطة ضعف إلى نقطة قوة",
+  "profile.privacy": "الخصوصية",
+  "profile.leaderboardAnonymous": "إخفاء اسمي في لوحات المتصدرين",
+  "profile.leaderboardAnonymousHint": "سيراك الطلاب الآخرون كمتعلم مجهول. ستستمر برؤية اسمك وترتيبك الحقيقيين.",
 
   "quest.xpSuffix": "+{xp} نقطة خبرة",
 

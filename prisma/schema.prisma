@@ -147,6 +147,13 @@ model Skill {
   icon        String @default("lightbulb")
   xpReward    Int    @default(20)
 
+  // The mastery level (GAP/DEVELOPING/MASTERED) the diagnostic that generated this personalized
+  // roadmap assigned to this skill's topic — null for a shared, non-personalized catalog path
+  // (Skill.pathId whose LearningPath.userId is null). Lets checkAndAwardBadges reward genuinely
+  // *mastering a weak topic* (BadgeCriteria.WEAK_TOPIC_MASTERED) rather than just completing any
+  // skill, per the gamification research's finding that rewards should target closing real gaps.
+  diagnosedMastery MasteryLevel?
+
   // Set only for skills generated from a CUSTOM (uploaded-document) plan: the grounding text
   // excerpt for this skill's topic, extracted once by analyzeDocument. When present, lesson
   // content/questions are generated from this excerpt directly instead of the Qudurat RAG bank

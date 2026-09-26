@@ -74,6 +74,7 @@ async function createPersonalPathFromRoadmap(
         milestoneId: milestoneIdByTitle.get(s.milestoneTitle) ?? milestoneIdByWeekNumber.get(s.milestoneTitle.match(/\d+/)?.[0] ?? ""),
         sourceExcerpt: excerptByKey?.get(s.key),
         domainLabel: s.domainLabel,
+        diagnosedMastery: s.mastery,
       },
     });
     skillIdByKey.set(s.key, skill.id);

@@ -4,7 +4,9 @@ export type BadgeCriteriaKind =
   | "LEVEL_REACHED"
   | "LEAGUE_PROMOTIONS"
   | "PERFECT_QUIZZES"
-  | "PATH_COMPLETED";
+  | "PATH_COMPLETED"
+  | "WEAK_TOPIC_MASTERED"
+  | "COMEBACK";
 
 export interface UserStatsSnapshot {
   bestStreak: number;
@@ -13,6 +15,13 @@ export interface UserStatsSnapshot {
   leaguePromotions: number;
   perfectQuizzes: number;
   pathsCompleted: number;
+  // Skills completed whose Skill.diagnosedMastery was GAP or DEVELOPING — rewards closing a
+  // diagnosed weak spot specifically, not just completing any skill (Table 2/3 of the
+  // gamification research).
+  weakTopicsMastered: number;
+  // Skills completed that took more than one real (non-practice) attempt on their lesson —
+  // rewards personal improvement/persistence over first-try performance.
+  comebacks: number;
 }
 
 export function meetsBadgeCriteria(criteria: BadgeCriteriaKind, criteriaValue: number, stats: UserStatsSnapshot): boolean {
@@ -29,5 +38,9 @@ export function meetsBadgeCriteria(criteria: BadgeCriteriaKind, criteriaValue: n
       return stats.perfectQuizzes >= criteriaValue;
     case "PATH_COMPLETED":
       return stats.pathsCompleted >= criteriaValue;
+    case "WEAK_TOPIC_MASTERED":
+      return stats.weakTopicsMastered >= criteriaValue;
+    case "COMEBACK":
+      return stats.comebacks >= criteriaValue;
   }
 }

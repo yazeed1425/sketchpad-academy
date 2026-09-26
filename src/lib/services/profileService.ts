@@ -23,6 +23,10 @@ export async function getResolvedProfile(userId: string) {
   return profile;
 }
 
+export async function setLeaderboardAnonymous(userId: string, leaderboardAnonymous: boolean) {
+  return db.profile.update({ where: { userId }, data: { leaderboardAnonymous } });
+}
+
 export async function getActiveDates(userId: string, days: number): Promise<Set<string>> {
   const since = dayKey(new Date(Date.now() - days * 24 * 60 * 60 * 1000));
   const rows = await db.activityDay.findMany({
