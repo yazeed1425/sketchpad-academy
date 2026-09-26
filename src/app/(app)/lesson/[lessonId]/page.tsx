@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { RoughButton } from "@/components/ui/RoughButton";
 import { HeartBrokenIcon, BookIcon, ChevronLeftIcon, FileTextIcon } from "@/components/ui/icons";
-import { QuizRunner, type QuizQuestion } from "@/components/quiz/QuizRunner";
+import { AdaptiveQuizRunner, type AdaptiveQuizQuestion, type AdaptiveProgress } from "@/components/quiz/AdaptiveQuizRunner";
 import { LessonSummary, type LessonCompleteResult } from "@/components/quiz/LessonSummary";
 import { LessonContentCards, type LessonContent } from "@/components/quiz/LessonContentCard";
 import { apiPost, ApiError } from "@/lib/hooks/useApi";
@@ -20,7 +20,8 @@ interface StartResponse {
   pathId: string;
   domainLabel: string | null;
   content: LessonContent;
-  questions: QuizQuestion[];
+  progress: AdaptiveProgress;
+  question: AdaptiveQuizQuestion;
 }
 
 interface PracticeResult {
@@ -29,10 +30,16 @@ interface PracticeResult {
   heartsRemaining: number;
 }
 
+interface BankPracticeStart {
+  attemptId: string;
+  progress: AdaptiveProgress;
+  question: AdaptiveQuizQuestion;
+}
+
 type BankPracticeState =
   | { status: "idle" }
   | { status: "loading" }
-  | { status: "running"; attemptId: string; questions: QuizQuestion[] }
+  | { status: "running"; data: BankPracticeStart }
   | { status: "result"; result: PracticeResult };
 
 export default function LessonPage({ params }: { params: Promise<{ lessonId: string }> }) {
@@ -49,8 +56,8 @@ export default function LessonPage({ params }: { params: Promise<{ lessonId: str
   async function startBankPractice() {
     setBankPractice({ status: "loading" });
     try {
-      const data = await apiPost<{ attemptId: string; questions: QuizQuestion[] }>(`/api/lessons/${lessonId}/practice`);
-      setBankPractice({ status: "running", attemptId: data.attemptId, questions: data.questions });
+      const data = await apiPost<BankPracticeStart>(`/api/lessons/${lessonId}/practice`);
+      setBankPractice({ status: "running", data });
     } catch {
       setBankPractice({ status: "idle" });
     }
@@ -141,9 +148,12 @@ export default function LessonPage({ params }: { params: Promise<{ lessonId: str
 
           <div>
             <h2 className="font-display text-xl mb-4">{t("lesson.testYourUnderstanding")}</h2>
-            <QuizRunner<LessonCompleteResult>
+            <AdaptiveQuizRunner<LessonCompleteResult>
               attemptId={state.data.attemptId}
-              questions={state.data.questions}
+              initialQuestion={state.data.question}
+              initialProgress={state.data.progress}
+              content={state.data.content}
+              heartsGated
               onFinished={handleFinished}
             />
           </div>
@@ -170,9 +180,10 @@ export default function LessonPage({ params }: { params: Promise<{ lessonId: str
             )}
 
             {bankPractice.status === "running" && (
-              <QuizRunner<PracticeResult>
-                attemptId={bankPractice.attemptId}
-                questions={bankPractice.questions}
+              <AdaptiveQuizRunner<PracticeResult>
+                attemptId={bankPractice.data.attemptId}
+                initialQuestion={bankPractice.data.question}
+                initialProgress={bankPractice.data.progress}
                 onFinished={(res) => setBankPractice({ status: "result", result: res })}
               />
             )}

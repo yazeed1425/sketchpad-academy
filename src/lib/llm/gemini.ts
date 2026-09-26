@@ -220,14 +220,23 @@ export interface QuestionBankReference {
   explanation?: string;
 }
 
-/** Generates one fresh multiple-choice practice question for a lesson's topic — no RAG reference available (or it failed), so nothing to mutate from. */
-export async function generatePracticeQuestion(params: { topic: string; avoidPrompts: string[] }): Promise<GeneratedQuestion> {
+/**
+ * Generates one fresh multiple-choice practice question for a lesson's topic — no RAG reference
+ * available (or it failed), so nothing to mutate from. `difficulty` drives the same EASY/MEDIUM/
+ * HARD ladder as the diagnostic (see src/lib/gamification/adaptive.ts), letting lesson quizzes
+ * and question-bank practice adapt question-to-question instead of staying at one fixed level.
+ */
+export async function generatePracticeQuestion(params: {
+  topic: string;
+  difficulty: $Enums.DiagnosticDifficulty;
+  avoidPrompts: string[];
+}): Promise<GeneratedQuestion> {
   const avoid = params.avoidPrompts.length
     ? `\nتجنّب تكرار أو مشابهة هذه الأسئلة السابقة في نفس جلسة التدريب:\n${params.avoidPrompts.map((p) => `- ${p}`).join("\n")}`
     : "";
 
   const prompt = `أنت خبير في تصميم أسئلة اختبار القدرات العامة (GAT) السعودي.
-أنشئ سؤال اختيار من متعدد باللغة العربية الفصحى للتدريب على موضوع "${params.topic}".
+أنشئ سؤال اختيار من متعدد باللغة العربية الفصحى للتدريب على موضوع "${params.topic}"، بمستوى صعوبة "${DIFFICULTY_LABEL_AR[params.difficulty]}".
 المتطلبات:
 - أربعة خيارات فقط، خيار واحد صحيح فقط.
 - correctAnswer يجب أن يطابق نص أحد الخيارات الأربعة حرفياً تماماً.
@@ -249,6 +258,7 @@ ${MATH_FORMATTING_RULE}${avoid}
  */
 export async function generateMutatedPracticeQuestion(params: {
   topic: string;
+  difficulty: $Enums.DiagnosticDifficulty;
   reference: QuestionBankReference;
   avoidPrompts: string[];
 }): Promise<GeneratedQuestion> {
@@ -268,6 +278,7 @@ export async function generateMutatedPracticeQuestion(params: {
 المتطلبات:
 - أربعة خيارات فقط، خيار واحد صحيح فقط، والمشتتات (الخيارات الخاطئة) معقولة وليست واضحة الاستبعاد.
 - correctAnswer يجب أن يطابق نص أحد الخيارات الأربعة حرفياً تماماً.
+- درجة الصعوبة المطلوبة: "${DIFFICULTY_LABEL_AR[params.difficulty]}" — عدّل تعقيد الأرقام والخطوات في السؤال الجديد بما يطابق هذا المستوى (قد يختلف عن صعوبة السؤال المرجعي الأصلي).
 - اجعل الشرح (explanation) جملة أو جملتين توضح خطوات حل السؤال الجديد بأرقامه الجديدة.
 ${MATH_FORMATTING_RULE}${avoid}
 أعد النتيجة بصيغة JSON فقط حسب المخطط المطلوب، بدون أي نص إضافي.`;
