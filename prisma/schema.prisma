@@ -57,6 +57,12 @@ model Profile {
   bestStreak     Int     @default(0)
   lastActiveDate String? // YYYY-MM-DD, local calendar day of last qualifying activity
 
+  // When true, this user's name is masked (a stable per-division pseudonym) in league
+  // leaderboard responses — see leagueService.getMyLeagueStanding. Addresses the competition
+  // stress the gamification research flags: students can opt into a private, non-competitive
+  // view (the personal mastery tracker) without leaving the league entirely.
+  leaderboardAnonymous Boolean @default(false)
+
   updatedAt DateTime @updatedAt
 }
 
@@ -232,13 +238,25 @@ model Question {
   lesson        Lesson       @relation(fields: [lessonId], references: [id], onDelete: Cascade)
   type          QuestionType @default(MULTIPLE_CHOICE)
   source        QuestionSource @default(CURRICULUM)
+  // Reuses DiagnosticDifficulty (EASY/MEDIUM/HARD) rather than a second enum, so the same
+  // adaptive-engine ladder (src/lib/gamification/diagnostic.ts) can drive lesson/practice
+  // question generation, not just the one-time placement test.
+  difficulty    DiagnosticDifficulty @default(MEDIUM)
   prompt        String
   optionsJson   String // JSON-encoded string[] of choices (empty for FILL_BLANK)
   correctAnswer String // exact-match answer, or index-as-string for MC/TF
   explanation   String // shown on incorrect answer for step-by-step feedback
+  // JSON-encoded Record<optionText, { misconception: string; whyWrong: string }> for every
+  // incorrect option, generated once alongside the question (same Gemini call, no extra
+  // round-trip at answer time) so submitAnswer can return WHY the student's specific wrong
+  // choice was wrong instead of only re-explaining the correct answer. Null for FILL_BLANK
+  // questions and any question generated before this field existed.
+  distractorRationaleJson String?
   order         Int          @default(0)
 
   responses QuestionResponse[]
+
+  @@index([difficulty])
 }
 
 // ───────────────────────── Quiz attempts & instant feedback ─────────────────────────
@@ -269,6 +287,12 @@ model QuestionResponse {
   question   Question    @relation(fields: [questionId], references: [id], onDelete: Cascade)
   userAnswer String
   isCorrect  Boolean
+  // The misconception label (from the answered question's distractorRationaleJson) matching the
+  // student's chosen wrong option, if any — set only when isCorrect is false and the question has
+  // a rationale for that exact option. Kept denormalized here (rather than re-deriving it from
+  // the question every read) so future badges/analytics can query "which misconceptions recur
+  // for this student" without re-parsing distractorRationaleJson each time.
+  misconceptionTag String?
   answeredAt DateTime    @default(now())
 }
 
@@ -395,6 +419,13 @@ enum BadgeCriteria {
   LEAGUE_PROMOTIONS
   PERFECT_QUIZZES
   PATH_COMPLETED
+  // A skill/topic diagnosed as GAP or DEVELOPING at placement time later reaching COMPLETED —
+  // rewards closing a known weak spot specifically, not just accumulating completions generally
+  // (Table 2/3 of the gamification research: reward mastering weak topics, not only totals).
+  WEAK_TOPIC_MASTERED
+  // A skill re-attempted and passed after a prior failed/low-scoring attempt — rewards personal
+  // improvement over time rather than first-try performance.
+  COMEBACK
 }
 
 model Badge {
