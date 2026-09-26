@@ -29,7 +29,7 @@ type NavItem = { href: string; key: TranslationKey; icon: (props: IconProps) => 
 const SIDEBAR_NAV: NavItem[] = [
   { href: "/dashboard", key: "nav.dashboard", icon: HomeIcon },
   { href: "/roadmap", key: "nav.roadmap", icon: MapIcon },
-  { href: "/dashboard", key: "nav.tests", icon: FileTextIcon },
+  { href: "/tests", key: "nav.tests", icon: FileTextIcon },
   { href: "/dashboard", key: "nav.analytics", icon: BarChartIcon },
   { href: "/leagues", key: "nav.leagues", icon: BadgeIcon },
 ];
@@ -50,6 +50,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const isActive = (item: NavItem) => {
     if (item.key === "nav.roadmap") return pathname.startsWith("/paths/") && pathname.endsWith("/tree");
     if (item.key === "nav.dashboard") return pathname === "/dashboard";
+    if (item.key === "nav.tests") return pathname.startsWith("/tests");
     return false;
   };
 

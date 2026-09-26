@@ -172,7 +172,7 @@ export async function startPractice(userId: string) {
 export async function startQuestionBankPractice(userId: string, lessonId: string) {
   const lesson = await db.lesson.findUniqueOrThrow({
     where: { id: lessonId },
-    include: { skill: { select: { title: true, description: true, sourceExcerpt: true } } },
+    include: { skill: { select: { pathId: true, title: true, description: true, sourceExcerpt: true, domainLabel: true } } },
   });
   const topic = `${lesson.skill.title}: ${lesson.title}`;
   const generated = await generateQuestionSet(topic, QUESTION_BANK_PRACTICE_COUNT, lesson.skill.sourceExcerpt ?? undefined);
@@ -198,6 +198,10 @@ export async function startQuestionBankPractice(userId: string, lessonId: string
 
   return {
     attemptId: attempt.id,
+    lessonTitle: lesson.title,
+    skillTitle: lesson.skill.title,
+    pathId: lesson.skill.pathId,
+    domainLabel: lesson.skill.domainLabel,
     questions: questions.map((q) => ({
       id: q.id,
       type: q.type,

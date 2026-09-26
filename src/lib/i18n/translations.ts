@@ -233,6 +233,25 @@ const en = {
   "diagnostic.custom.report.documentLabel": "Based on: {title}",
   "diagnostic.custom.error.generic": "Something went wrong processing your file. Please try again.",
   "diagnostic.custom.error.retry": "Try again",
+
+  "tests.title": "Tests",
+  "tests.subtitle": "Every quiz on your current path, in one place.",
+  "tests.statLocked": "Locked",
+  "tests.statAvgScore": "Your average",
+  "tests.statCompleted": "Completed",
+  "tests.statAvailable": "Available",
+  "tests.filterAll": "All",
+  "tests.sectionAvailable": "Available now",
+  "tests.sectionCompleted": "Completed",
+  "tests.start": "Start",
+  "tests.retry": "Retry",
+  "tests.scoreLabel": "Score: {score}%",
+  "tests.xpSuffix": "+{xp} XP",
+  "tests.noneAvailable": "No tests here yet — keep going on your roadmap to unlock more.",
+  "tests.noneCompleted": "You haven't completed any tests yet.",
+  "tests.backToTests": "Tests",
+  "tests.error.generic": "Couldn't generate this test. Please try again.",
+  "tests.preparing": "Generating your test from this topic...",
 } as const;
 
 export type TranslationKey = keyof typeof en;
@@ -467,6 +486,25 @@ const ar: Record<TranslationKey, string> = {
   "diagnostic.custom.report.documentLabel": "بناءً على: {title}",
   "diagnostic.custom.error.generic": "حدث خطأ أثناء معالجة ملفك. حاول مرة أخرى.",
   "diagnostic.custom.error.retry": "حاول مرة أخرى",
+
+  "tests.title": "الاختبارات",
+  "tests.subtitle": "كل اختبارات مسارك الحالي في مكان واحد.",
+  "tests.statLocked": "مقفلة",
+  "tests.statAvgScore": "متوسط درجاتك",
+  "tests.statCompleted": "مكتملة",
+  "tests.statAvailable": "متاحة",
+  "tests.filterAll": "الكل",
+  "tests.sectionAvailable": "متاحة الآن",
+  "tests.sectionCompleted": "مكتملة",
+  "tests.start": "ابدأ",
+  "tests.retry": "أعد المحاولة",
+  "tests.scoreLabel": "الدرجة: {score}٪",
+  "tests.xpSuffix": "+{xp} نقطة خبرة",
+  "tests.noneAvailable": "لا توجد اختبارات هنا بعد — أكمل خارطة تعلمك لفتح المزيد.",
+  "tests.noneCompleted": "لم تكمل أي اختبار بعد.",
+  "tests.backToTests": "الاختبارات",
+  "tests.error.generic": "تعذّر توليد هذا الاختبار. حاول مرة أخرى.",
+  "tests.preparing": "جارٍ توليد اختبارك من هذا الموضوع...",
 };
 
 export const translations: Record<Locale, Record<TranslationKey, string>> = { en, ar };

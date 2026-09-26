@@ -3,8 +3,6 @@
 import "dotenv/config";
 import { defineConfig } from "prisma/config";
 
-// Note: the CLI (migrate/studio) uses its own bundled SQLite engine and doesn't need a driver
-// adapter here — only the generated Client at runtime does (see src/lib/db.ts).
 export default defineConfig({
   schema: "prisma/schema.prisma",
   migrations: {
