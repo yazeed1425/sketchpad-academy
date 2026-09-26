@@ -494,6 +494,9 @@ model DiagnosticQuestion {
   optionsJson   String // JSON-encoded string[] of choices
   correctAnswer String
   explanation   String
+  // Same {optionText: {misconception, whyWrong}} JSON map as Question.distractorRationaleJson —
+  // lets submitDiagnosticAnswer return WHY the student's specific wrong choice was wrong.
+  distractorRationaleJson String?
 
   responses DiagnosticResponse[]
 
@@ -524,6 +527,9 @@ model DiagnosticResponse {
   difficulty   DiagnosticDifficulty
   userAnswer   String
   isCorrect    Boolean
+  // See QuestionResponse.misconceptionTag — same idea, set only when isCorrect is false and the
+  // question's distractorRationaleJson has an entry for the student's chosen option.
+  misconceptionTag String?
   timeTakenSec Int
   answeredAt   DateTime             @default(now())
 
@@ -567,8 +573,12 @@ model CustomDiagnosticResponse {
   optionsJson   String
   correctAnswer String
   explanation   String
+  // Same {optionText: {misconception, whyWrong}} JSON map as Question.distractorRationaleJson.
+  distractorRationaleJson String?
   userAnswer    String?
   isCorrect     Boolean?
+  // Set only when isCorrect is false and distractorRationaleJson has an entry for userAnswer.
+  misconceptionTag String?
   timeTakenSec  Int?
   answeredAt    DateTime?
 

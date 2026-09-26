@@ -10,6 +10,8 @@ import {
   analyzeDocument,
   generateCustomQuestion,
   evaluateCustomDiagnosticAttempt,
+  buildDistractorRationaleMap,
+  lookupDistractorRationale,
   type CustomDiagnosticTranscriptEntry,
   type GeneratedQuestion,
 } from "@/lib/llm/gemini";
@@ -97,6 +99,7 @@ async function serveStep(attemptId: string, step: CustomDiagnosticStep, avoidPro
       optionsJson: JSON.stringify(generated.options),
       correctAnswer: generated.correctAnswer,
       explanation: generated.explanation,
+      distractorRationaleJson: JSON.stringify(buildDistractorRationaleMap(generated.distractors)),
     },
   });
 }
@@ -231,13 +234,16 @@ export async function submitCustomDiagnosticAnswer(
   const response = await db.customDiagnosticResponse.findUniqueOrThrow({ where: { id: responseId } });
   if (response.attemptId !== attemptId) throw new Error("Forbidden");
   const isCorrect = normalize(answer) === normalize(response.correctAnswer);
+  const { explanation, misconceptionTag } = isCorrect
+    ? { explanation: response.explanation, misconceptionTag: null as string | null }
+    : lookupDistractorRationale(response.distractorRationaleJson, answer, response.explanation);
 
   await db.customDiagnosticResponse.update({
     where: { id: responseId },
-    data: { userAnswer: answer, isCorrect, timeTakenSec: Math.max(0, Math.round(timeTakenSec)), answeredAt: new Date() },
+    data: { userAnswer: answer, isCorrect, misconceptionTag, timeTakenSec: Math.max(0, Math.round(timeTakenSec)), answeredAt: new Date() },
   });
 
-  return { feedback: { isCorrect, correctAnswer: response.correctAnswer, explanation: response.explanation } };
+  return { feedback: { isCorrect, correctAnswer: response.correctAnswer, explanation } };
 }
 
 export interface CustomTopicResult {

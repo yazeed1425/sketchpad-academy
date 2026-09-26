@@ -113,14 +113,30 @@ const MATH_FORMATTING_RULE = `قواعد صارمة لكتابة الرموز ا
 يُسمح داخل علامتي $ فقط بالأرقام الهندية والمتغيرات العربية المفردة (مثل س، ص، ع) ورموز العمليات الرياضية وأوامر LaTeX — ممنوع وضع أي كلمة أو جملة عربية كاملة (شرح أو وصف) داخل علامتي $، فقط الرموز والمتغيرات المفردة.
 لا تستخدم LaTeX في مواضيع لغوية بحتة لا تحتاجه.`;
 
+export interface GeneratedDistractor {
+  option: string;
+  // A short label for the misconception/error pattern this wrong option represents (e.g. "sign
+  // error", "confused radius with diameter") — stored as QuestionResponse.misconceptionTag /
+  // DiagnosticResponse.misconceptionTag when a student picks it, for future analytics/badges.
+  misconception: string;
+  // One sentence explaining specifically why THIS option is wrong — shown to a student who
+  // picked it instead of the generic "why the correct answer is right" explanation (Section 3.3
+  // / Appendix D of the gamification research: diagnostic, choice-specific feedback).
+  whyWrong: string;
+}
+
 export interface GeneratedQuestion {
   prompt: string;
   options: string[];
   correctAnswer: string;
   explanation: string;
+  // Rationale for each of the 3 incorrect options — see GeneratedDistractor. Always requested,
+  // but callers (buildDistractorRationaleMap) tolerate a missing/malformed entry per option and
+  // simply fall back to the generic `explanation` for that option.
+  distractors: GeneratedDistractor[];
 }
 
-/** Shared by generateDiagnosticQuestion and generateMutatedDiagnosticQuestion — both use QUESTION_SCHEMA. */
+/** Shared by every generate*Question function — all use QUESTION_SCHEMA. */
 function validateGeneratedQuestion(result: GeneratedQuestion): void {
   if (!result.options.includes(result.correctAnswer)) {
     const trimmedMatch = result.options.find((o) => o.trim() === result.correctAnswer.trim());
@@ -128,6 +144,49 @@ function validateGeneratedQuestion(result: GeneratedQuestion): void {
     result.correctAnswer = trimmedMatch;
   }
   if (result.options.length !== 4) throw new Error("Gemini did not return exactly 4 options");
+
+  // Distractor rationale is a nice-to-have on top of a valid question, not a hard requirement —
+  // drop anything that doesn't cleanly match one of the actual wrong options (by exact or
+  // trimmed text) instead of failing the whole question over it.
+  const wrongOptions = result.options.filter((o) => o !== result.correctAnswer);
+  result.distractors = (result.distractors ?? [])
+    .map((d) => {
+      const match = wrongOptions.find((o) => o === d.option || o.trim() === d.option.trim());
+      return match ? { ...d, option: match } : null;
+    })
+    .filter((d): d is GeneratedDistractor => d !== null);
+}
+
+/** Builds a {optionText: {misconception, whyWrong}} lookup for persisting as *.distractorRationaleJson, for O(1) lookup at answer time. */
+export function buildDistractorRationaleMap(distractors: GeneratedDistractor[]): Record<string, { misconception: string; whyWrong: string }> {
+  const map: Record<string, { misconception: string; whyWrong: string }> = {};
+  for (const d of distractors) map[d.option] = { misconception: d.misconception, whyWrong: d.whyWrong };
+  return map;
+}
+
+/**
+ * Looks up the stored rationale for a specific chosen wrong option out of a persisted
+ * *.distractorRationaleJson column, returning both the misconception tag to persist on the
+ * response and a choice-specific explanation. Falls back to the question's generic explanation
+ * when there's no rationale for this exact option (a question generated before Phase 3, a
+ * FILL_BLANK question, or an option Gemini's distractor list didn't cover) — used by
+ * quizService.submitAnswer, diagnosticService.submitDiagnosticAnswer, and
+ * customDiagnosticService.submitCustomDiagnosticAnswer alike.
+ */
+export function lookupDistractorRationale(
+  distractorRationaleJson: string | null,
+  chosenAnswer: string,
+  fallbackExplanation: string
+): { explanation: string; misconceptionTag: string | null } {
+  if (!distractorRationaleJson) return { explanation: fallbackExplanation, misconceptionTag: null };
+  try {
+    const map = JSON.parse(distractorRationaleJson) as Record<string, { misconception: string; whyWrong: string }>;
+    const entry = map[chosenAnswer];
+    if (!entry) return { explanation: fallbackExplanation, misconceptionTag: null };
+    return { explanation: entry.whyWrong, misconceptionTag: entry.misconception };
+  } catch {
+    return { explanation: fallbackExplanation, misconceptionTag: null };
+  }
 }
 
 const QUESTION_SCHEMA = {
@@ -137,9 +196,29 @@ const QUESTION_SCHEMA = {
     options: { type: "ARRAY", items: { type: "STRING" }, minItems: 4, maxItems: 4 },
     correctAnswer: { type: "STRING" },
     explanation: { type: "STRING" },
+    distractors: {
+      type: "ARRAY",
+      items: {
+        type: "OBJECT",
+        properties: {
+          option: { type: "STRING" },
+          misconception: { type: "STRING" },
+          whyWrong: { type: "STRING" },
+        },
+        required: ["option", "misconception", "whyWrong"],
+      },
+      minItems: 3,
+      maxItems: 3,
+    },
   },
-  required: ["prompt", "options", "correctAnswer", "explanation"],
+  required: ["prompt", "options", "correctAnswer", "explanation", "distractors"],
 };
+
+const DISTRACTOR_RULE = `لكل واحد من الخيارات الثلاثة الخاطئة (غير correctAnswer)، أضف كائناً في distractors يحدد:
+- option: نص الخيار الخاطئ حرفياً كما يظهر في options.
+- misconception: تصنيف قصير جداً (2-4 كلمات) للخطأ المفاهيمي أو الحسابي الذي يقود لاختيار هذا الخيار تحديداً (مثال: "خطأ في الإشارة"، "الخلط بين نصف القطر والقطر"، "نسيان ترتيب العمليات").
+- whyWrong: جملة واحدة تشرح تحديداً لماذا هذا الخيار بالذات خاطئ (ما الخطأ الذي يقود له)، لا لماذا الإجابة الصحيحة صحيحة.
+اجعل كل خيار خاطئ ينتج فعلياً عن خطأ منطقي أو حسابي واقعي وشائع عند الطلاب في هذا الموضوع تحديداً، وليس رقماً عشوائياً — كل مشتت (distractor) يجب أن يقابل مساراً حسابياً فعلياً يوصل لذلك الرقم لو أخطأ الطالب بالطريقة الموصوفة.`;
 
 /** Generates one fresh multiple-choice question for a sub-skill/difficulty, in Arabic. */
 export async function generateDiagnosticQuestion(params: {
@@ -159,6 +238,7 @@ export async function generateDiagnosticQuestion(params: {
 - correctAnswer يجب أن يطابق نص أحد الخيارات الأربعة حرفياً تماماً (نفس الأحرف والمسافات).
 - السؤال مناسب لطالب ثانوي سعودي يستعد لاختبار القدرات.
 - اجعل الشرح (explanation) جملة أو جملتين توضح سبب صحة الإجابة.
+${DISTRACTOR_RULE}
 ${MATH_FORMATTING_RULE}${avoid}
 أعد النتيجة بصيغة JSON فقط حسب المخطط المطلوب، بدون أي نص إضافي.`;
 
@@ -205,6 +285,7 @@ export async function generateMutatedDiagnosticQuestion(params: {
 - correctAnswer يجب أن يطابق نص أحد الخيارات الأربعة حرفياً تماماً.
 - درجة الصعوبة المطلوبة: "${DIFFICULTY_LABEL_AR[params.difficulty]}" — حافظ عليها في السؤال الجديد.
 - اجعل الشرح (explanation) جملة أو جملتين توضح خطوات حل السؤال الجديد بأرقامه الجديدة.
+${DISTRACTOR_RULE}
 ${MATH_FORMATTING_RULE}${avoid}
 أعد النتيجة بصيغة JSON فقط حسب المخطط المطلوب، بدون أي نص إضافي.`;
 
@@ -242,6 +323,7 @@ export async function generatePracticeQuestion(params: {
 - correctAnswer يجب أن يطابق نص أحد الخيارات الأربعة حرفياً تماماً.
 - السؤال مناسب لطالب ثانوي سعودي يستعد لاختبار القدرات.
 - اجعل الشرح (explanation) جملة أو جملتين توضح سبب صحة الإجابة.
+${DISTRACTOR_RULE}
 ${MATH_FORMATTING_RULE}${avoid}
 أعد النتيجة بصيغة JSON فقط حسب المخطط المطلوب، بدون أي نص إضافي.`;
 
@@ -280,6 +362,7 @@ export async function generateMutatedPracticeQuestion(params: {
 - correctAnswer يجب أن يطابق نص أحد الخيارات الأربعة حرفياً تماماً.
 - درجة الصعوبة المطلوبة: "${DIFFICULTY_LABEL_AR[params.difficulty]}" — عدّل تعقيد الأرقام والخطوات في السؤال الجديد بما يطابق هذا المستوى (قد يختلف عن صعوبة السؤال المرجعي الأصلي).
 - اجعل الشرح (explanation) جملة أو جملتين توضح خطوات حل السؤال الجديد بأرقامه الجديدة.
+${DISTRACTOR_RULE}
 ${MATH_FORMATTING_RULE}${avoid}
 أعد النتيجة بصيغة JSON فقط حسب المخطط المطلوب، بدون أي نص إضافي.`;
 
@@ -756,6 +839,7 @@ ${params.excerpt}
 - أربعة خيارات فقط، خيار واحد صحيح فقط، والمشتتات معقولة وليست واضحة الاستبعاد.
 - correctAnswer يجب أن يطابق نص أحد الخيارات الأربعة حرفياً تماماً.
 - اجعل الشرح (explanation) جملة أو جملتين توضح سبب صحة الإجابة بالاستناد للمقتطف.
+${DISTRACTOR_RULE}
 ${MATH_FORMATTING_RULE}${avoid}
 أعد النتيجة بصيغة JSON فقط حسب المخطط المطلوب، بدون أي نص إضافي.`;
 

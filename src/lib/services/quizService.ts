@@ -11,6 +11,8 @@ import {
   generatePracticeQuestion,
   generateMutatedPracticeQuestion,
   generateCustomQuestion,
+  buildDistractorRationaleMap,
+  lookupDistractorRationale,
   type LessonContent,
   type LessonReference,
   type QuestionBankReference,
@@ -142,6 +144,7 @@ async function generateAndStoreQuizQuestion(
       optionsJson: JSON.stringify(generated.options),
       correctAnswer: generated.correctAnswer,
       explanation: generated.explanation,
+      distractorRationaleJson: JSON.stringify(buildDistractorRationaleMap(generated.distractors)),
     },
   });
 }
@@ -421,9 +424,12 @@ export async function submitAnswer(userId: string, attemptId: string, questionId
 
   const question = await db.question.findUniqueOrThrow({ where: { id: questionId } });
   const isCorrect = normalize(answer) === normalize(question.correctAnswer);
+  const { explanation, misconceptionTag } = isCorrect
+    ? { explanation: question.explanation, misconceptionTag: null as string | null }
+    : lookupDistractorRationale(question.distractorRationaleJson, answer, question.explanation);
 
   await db.questionResponse.create({
-    data: { attemptId, questionId, userAnswer: answer, isCorrect },
+    data: { attemptId, questionId, userAnswer: answer, isCorrect, misconceptionTag },
   });
 
   let hearts = await getResolvedHearts(userId);
@@ -435,7 +441,7 @@ export async function submitAnswer(userId: string, attemptId: string, questionId
   return {
     isCorrect,
     correctAnswer: question.correctAnswer,
-    explanation: question.explanation,
+    explanation,
     hearts: hearts.hearts,
     heartsDepleted: hearts.hearts <= 0,
   };
