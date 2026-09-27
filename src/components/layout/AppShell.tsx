@@ -20,6 +20,7 @@ import {
   type IconProps,
 } from "@/components/ui/icons";
 import { HeartRegenTimer } from "@/components/dashboard/HeartRegenTimer";
+import { TutorPanel } from "@/components/tutor/TutorPanel";
 import { apiFetcher, apiPost } from "@/lib/hooks/useApi";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 import { formatNumber, type TranslationKey } from "@/lib/i18n/translations";
@@ -114,8 +115,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </nav>
 
-      {/* Sidebar + floating content card */}
+      {/* AI Tutor (left) + main content + nav sidebar (right) */}
       <div className="flex-1 flex bg-[var(--paper)] p-0 sm:p-3 gap-0 sm:gap-3" dir="ltr">
+        <TutorPanel />
+
         <div className="flex-1 flex flex-col min-w-0 order-1">
           <main dir={locale === "ar" ? "rtl" : "ltr"} className="floating-card flex-1 w-full max-w-[1600px] mx-auto px-4 sm:px-6 py-6">
             {children}

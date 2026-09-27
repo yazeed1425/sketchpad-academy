@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import useSWR from "swr";
+import { useParams } from "next/navigation";
+import useSWR, { preload } from "swr";
 import { RoughButton } from "@/components/ui/RoughButton";
 import { MathText } from "@/components/ui/MathText";
 import { ChatBubbleIcon, CardsIcon, NetworkIcon, CrossIcon } from "@/components/ui/icons";
@@ -32,6 +33,9 @@ interface GraphEdge {
 
 type Tab = "chat" | "flashcards" | "graph";
 
+const flashcardsKey = (lessonId: string) => `/api/lessons/${lessonId}/tutor/flashcards`;
+const knowledgeGraphKey = (lessonId: string) => `/api/lessons/${lessonId}/tutor/knowledge-graph`;
+
 function TabButton({ active, onClick, icon, label }: { active: boolean; onClick: () => void; icon: React.ReactNode; label: string }) {
   return (
     <button
@@ -46,7 +50,10 @@ function TabButton({ active, onClick, icon, label }: { active: boolean; onClick:
   );
 }
 
-function ChatTab({ lessonId }: { lessonId: string }) {
+/** lessonId present → grounded in that lesson's content; absent → grounded in the student's
+ * overall learning plan/progress (see askPlanTutorQuestion), so the panel is always useful even
+ * outside a lesson page. */
+function ChatTab({ lessonId }: { lessonId?: string }) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
@@ -65,10 +72,8 @@ function ChatTab({ lessonId }: { lessonId: string }) {
     setMessages(nextMessages);
     setSending(true);
     try {
-      const { answer } = await apiPost<{ answer: string }>(`/api/lessons/${lessonId}/tutor/chat`, {
-        question,
-        history: messages,
-      });
+      const endpoint = lessonId ? `/api/lessons/${lessonId}/tutor/chat` : "/api/tutor/chat";
+      const { answer } = await apiPost<{ answer: string }>(endpoint, { question, history: messages });
       setMessages([...nextMessages, { role: "tutor", text: answer }]);
     } catch {
       setMessages([...nextMessages, { role: "tutor", text: "..." }]);
@@ -80,7 +85,9 @@ function ChatTab({ lessonId }: { lessonId: string }) {
   return (
     <div className="flex flex-col h-full">
       <div ref={scrollRef} className="flex-1 overflow-y-auto space-y-3 pb-3">
-        {messages.length === 0 && <p className="text-sm text-[var(--ink-faint)] text-center mt-6">{t("tutor.chatEmpty")}</p>}
+        {messages.length === 0 && (
+          <p className="text-sm text-[var(--ink-faint)] text-center mt-6">{t(lessonId ? "tutor.chatEmpty" : "tutor.chatEmptyPlan")}</p>
+        )}
         {messages.map((m, i) => (
           <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
             <div
@@ -111,13 +118,15 @@ function ChatTab({ lessonId }: { lessonId: string }) {
   );
 }
 
-function FlashcardsTab({ lessonId }: { lessonId: string }) {
-  const { data, isLoading } = useSWR<{ cards: Flashcard[] }>(`/api/lessons/${lessonId}/tutor/flashcards`, apiFetcher, {
+function FlashcardsTab({ lessonId }: { lessonId?: string }) {
+  const { t } = useTranslation();
+  const { data, isLoading } = useSWR<{ cards: Flashcard[] }>(lessonId ? flashcardsKey(lessonId) : null, apiFetcher, {
     revalidateOnFocus: false,
   });
   const [index, setIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
-  const { t } = useTranslation();
+
+  if (!lessonId) return <p className="text-sm text-[var(--ink-faint)] text-center mt-6">{t("tutor.flashcardsNoLesson")}</p>;
 
   const cards = data?.cards ?? [];
 
@@ -159,14 +168,14 @@ function FlashcardsTab({ lessonId }: { lessonId: string }) {
 
 const GRAPH_COLORS = ["var(--accent)", "var(--info)", "var(--success)", "var(--gold)", "var(--heart)", "var(--overdue)"];
 
-function GraphTab({ lessonId }: { lessonId: string }) {
-  const { data, isLoading } = useSWR<{ nodes: GraphNode[]; edges: GraphEdge[] }>(
-    `/api/lessons/${lessonId}/tutor/knowledge-graph`,
-    apiFetcher,
-    { revalidateOnFocus: false }
-  );
-  const [selected, setSelected] = useState<GraphNode | null>(null);
+function GraphTab({ lessonId }: { lessonId?: string }) {
   const { t } = useTranslation();
+  const { data, isLoading } = useSWR<{ nodes: GraphNode[]; edges: GraphEdge[] }>(lessonId ? knowledgeGraphKey(lessonId) : null, apiFetcher, {
+    revalidateOnFocus: false,
+  });
+  const [selected, setSelected] = useState<GraphNode | null>(null);
+
+  if (!lessonId) return <p className="text-sm text-[var(--ink-faint)] text-center mt-6">{t("tutor.graphNoLesson")}</p>;
 
   const nodes = data?.nodes ?? [];
   const edges = data?.edges ?? [];
@@ -228,46 +237,77 @@ function GraphTab({ lessonId }: { lessonId: string }) {
   );
 }
 
-export function TutorPanel({ lessonId }: { lessonId: string }) {
-  const [open, setOpen] = useState(false);
+function TutorPanelBody({ lessonId, onClose }: { lessonId?: string; onClose?: () => void }) {
   const [tab, setTab] = useState<Tab>("chat");
   const { t } = useTranslation();
 
   return (
+    <div className="h-full flex flex-col">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border-secondary)] shrink-0">
+        <h2 className="font-display text-base flex items-center gap-2">
+          <ChatBubbleIcon size={18} className="text-[var(--accent)]" />
+          {t("tutor.title")}
+        </h2>
+        {onClose && (
+          <button onClick={onClose} className="text-[var(--ink-faint)] hover:text-[var(--ink)] p-1">
+            <CrossIcon size={16} />
+          </button>
+        )}
+      </div>
+      <div className="flex border-b border-[var(--border-secondary)] shrink-0">
+        <TabButton active={tab === "chat"} onClick={() => setTab("chat")} icon={<ChatBubbleIcon size={16} />} label={t("tutor.tabChat")} />
+        <TabButton active={tab === "flashcards"} onClick={() => setTab("flashcards")} icon={<CardsIcon size={16} />} label={t("tutor.tabFlashcards")} />
+        <TabButton active={tab === "graph"} onClick={() => setTab("graph")} icon={<NetworkIcon size={16} />} label={t("tutor.tabGraph")} />
+      </div>
+      <div className="flex-1 overflow-y-auto p-4 min-h-0">
+        {tab === "chat" && <ChatTab key={lessonId ?? "plan"} lessonId={lessonId} />}
+        {tab === "flashcards" && <FlashcardsTab key={lessonId ?? "plan"} lessonId={lessonId} />}
+        {tab === "graph" && <GraphTab key={lessonId ?? "plan"} lessonId={lessonId} />}
+      </div>
+    </div>
+  );
+}
+
+/** Persistent on desktop (always visible, docked to the physical left of the app, alongside
+ * AppShell's main content and right-hand nav) so the tutor is available from anywhere, not just
+ * lesson pages — collapsible only on mobile, where a full-width sidebar would block the app.
+ * Picks up the current lesson (if any) straight from the route via useParams, and warms the
+ * flashcards/knowledge-graph cache the moment a lesson is opened so both tabs are ready before
+ * the student ever clicks them (see the prefetch effect below). */
+export function TutorPanel() {
+  const { lessonId } = useParams<{ lessonId?: string }>();
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const { t } = useTranslation();
+
+  useEffect(() => {
+    if (!lessonId) return;
+    preload(flashcardsKey(lessonId), apiFetcher);
+    preload(knowledgeGraphKey(lessonId), apiFetcher);
+  }, [lessonId]);
+
+  return (
     <>
+      {/* Desktop: always-open sidebar, docked to the physical left */}
+      <div
+        className="hidden sm:flex w-[360px] shrink-0 bg-[var(--card-bg)] rounded-[var(--radius-xl)] border border-[var(--border-secondary)] shadow-[var(--shadow-sm)] overflow-hidden"
+        style={{ order: -1 }}
+      >
+        <TutorPanelBody lessonId={lessonId} />
+      </div>
+
+      {/* Mobile: floating toggle + full-screen overlay, since a 360px sidebar would eat the whole viewport */}
       <button
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => setMobileOpen((o) => !o)}
         aria-label={t("tutor.toggle")}
-        className="fixed left-4 bottom-4 z-40 w-14 h-14 rounded-full shadow-[var(--shadow-md)] flex items-center justify-center bg-[var(--accent)] text-white hover:scale-105 active:scale-95 transition-transform"
+        className="sm:hidden fixed left-4 bottom-4 z-40 w-14 h-14 rounded-full shadow-[var(--shadow-md)] flex items-center justify-center bg-[var(--accent)] text-white hover:scale-105 active:scale-95 transition-transform"
       >
         <ChatBubbleIcon size={26} />
       </button>
 
-      {open && (
-        <>
-          <div className="fixed inset-0 bg-black/20 z-40 sm:hidden" onClick={() => setOpen(false)} />
-          <div className="fixed left-0 top-0 bottom-0 z-50 w-full sm:w-[380px] bg-[var(--card-bg)] shadow-[var(--shadow-md)] flex flex-col animate-pop-in" style={{ borderInlineEnd: "1px solid var(--border-secondary)" }}>
-            <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border-secondary)] shrink-0">
-              <h2 className="font-display text-base flex items-center gap-2">
-                <ChatBubbleIcon size={18} className="text-[var(--accent)]" />
-                {t("tutor.title")}
-              </h2>
-              <button onClick={() => setOpen(false)} className="text-[var(--ink-faint)] hover:text-[var(--ink)] p-1">
-                <CrossIcon size={16} />
-              </button>
-            </div>
-            <div className="flex border-b border-[var(--border-secondary)] shrink-0">
-              <TabButton active={tab === "chat"} onClick={() => setTab("chat")} icon={<ChatBubbleIcon size={16} />} label={t("tutor.tabChat")} />
-              <TabButton active={tab === "flashcards"} onClick={() => setTab("flashcards")} icon={<CardsIcon size={16} />} label={t("tutor.tabFlashcards")} />
-              <TabButton active={tab === "graph"} onClick={() => setTab("graph")} icon={<NetworkIcon size={16} />} label={t("tutor.tabGraph")} />
-            </div>
-            <div className="flex-1 overflow-y-auto p-4 min-h-0">
-              {tab === "chat" && <ChatTab lessonId={lessonId} />}
-              {tab === "flashcards" && <FlashcardsTab lessonId={lessonId} />}
-              {tab === "graph" && <GraphTab lessonId={lessonId} />}
-            </div>
-          </div>
-        </>
+      {mobileOpen && (
+        <div className="sm:hidden fixed inset-0 z-50 bg-[var(--card-bg)] animate-pop-in">
+          <TutorPanelBody lessonId={lessonId} onClose={() => setMobileOpen(false)} />
+        </div>
       )}
     </>
   );

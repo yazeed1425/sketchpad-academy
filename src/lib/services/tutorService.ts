@@ -3,10 +3,12 @@ import {
   generateFlashcards,
   generateKnowledgeGraph,
   askTutor,
+  askPlanTutor,
   type TutorLessonContext,
   type TutorFlashcard,
   type TutorKnowledgeGraph,
   type TutorChatMessage,
+  type TutorPlanContext,
 } from "@/lib/llm/gemini";
 
 const MAX_HISTORY_TURNS = 12; // keep the chat prompt bounded — recent context matters far more than the full transcript
@@ -76,4 +78,54 @@ export async function askTutorQuestion(
 
   const context = await getLessonContext(lessonId);
   return askTutor(context, history.slice(-MAX_HISTORY_TURNS), question.trim());
+}
+
+/** The learning path the AI Tutor discusses when opened outside any specific lesson: the
+ * student's personal (diagnostic-generated) path if they have one, else their first enrolled
+ * shared catalog path. Mirrors the "current path" a student would see on their dashboard. */
+async function getPlanContext(userId: string): Promise<TutorPlanContext | null> {
+  const personalPath = await db.learningPath.findFirst({
+    where: { userId },
+    include: { skills: { orderBy: [{ tier: "asc" }, { col: "asc" }] } },
+  });
+  const path =
+    personalPath ??
+    (
+      await db.pathEnrollment.findFirst({
+        where: { userId },
+        orderBy: { startedAt: "asc" },
+        include: { path: { include: { skills: { orderBy: [{ tier: "asc" }, { col: "asc" }] } } } },
+      })
+    )?.path;
+  if (!path) return null;
+
+  const [profile, progress] = await Promise.all([
+    db.profile.findUniqueOrThrow({ where: { userId } }),
+    db.userSkillProgress.findMany({ where: { userId, skill: { pathId: path.id } }, select: { skillId: true, status: true } }),
+  ]);
+  const statusBySkillId = new Map(progress.map((p) => [p.skillId, p.status as string]));
+
+  return {
+    pathTitle: path.title,
+    pathDescription: path.description,
+    level: profile.level,
+    totalXp: profile.totalXp,
+    currentStreak: profile.currentStreak,
+    skills: path.skills.map((s) => ({
+      title: s.title,
+      status: statusBySkillId.get(s.id) ?? "LOCKED",
+      mastery: s.diagnosedMastery ?? undefined,
+    })),
+  };
+}
+
+/** Same idea as askTutorQuestion, but for the AI Tutor panel opened outside any lesson (dashboard,
+ * roadmap, profile, etc.) — grounded in the student's overall plan/progress instead of one
+ * lesson's content. */
+export async function askPlanTutorQuestion(userId: string, history: TutorChatMessage[], question: string): Promise<string> {
+  if (!question.trim()) throw new Error("Question cannot be empty");
+
+  const context = await getPlanContext(userId);
+  if (!context) throw new Error("No learning path found for this student yet");
+  return askPlanTutor(context, history.slice(-MAX_HISTORY_TURNS), question.trim());
 }
