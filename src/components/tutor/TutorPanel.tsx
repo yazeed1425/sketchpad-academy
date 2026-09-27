@@ -401,9 +401,12 @@ function TutorPanelBody({ lessonId, onClose }: { lessonId?: string; onClose?: ()
   );
 }
 
-/** Persistent on desktop (always visible, docked to the physical left of the app, alongside
- * AppShell's main content and right-hand nav) so the tutor is available from anywhere, not just
- * lesson pages — collapsible only on mobile, where a full-width sidebar would block the app.
+/** Available from anywhere via a toggle, docked to the physical left of the app alongside
+ * AppShell's main content and right-hand nav, but closed by default — most pages (dashboard,
+ * tests, leagues, profile) have no lesson context for it to ground answers in, so an always-open
+ * 360px column there was pure dead weight, squeezing everything else into a narrow strip. Opening
+ * it is one click away (desktop: a slim docked tab; mobile: the floating button), and it stays
+ * open across navigation once a student actually wants it.
  * Styled with the same card/radius/shadow tokens as the rest of the dashboard (see Card.tsx,
  * globals.css) so it reads as a native part of the app rather than a bolted-on widget.
  * Picks up the current lesson (if any) straight from the route via useParams, and warms the
@@ -411,11 +414,12 @@ function TutorPanelBody({ lessonId, onClose }: { lessonId?: string; onClose?: ()
  * the student ever clicks them (see the prefetch effect below).
  *
  * On the lesson page's own desktop layout (chat right / studio left, see LessonStudio and the
- * lesson page component), this sidebar would be a redundant second AI panel, so it hides itself
+ * lesson page component), this panel would be a redundant second AI surface, so it hides itself
  * there — the lesson page renders ChatTab/LessonStudio inline instead. On mobile, where the
  * lesson page falls back to its plain single-column layout, this stays available as usual. */
 export function TutorPanel() {
   const { lessonId } = useParams<{ lessonId?: string }>();
+  const [desktopOpen, setDesktopOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const { t } = useTranslation();
 
@@ -427,14 +431,24 @@ export function TutorPanel() {
 
   return (
     <>
-      {/* Desktop: always-open sidebar, docked to the physical left — except on a lesson page,
-          which builds its own chat+studio layout inline instead. */}
+      {/* Desktop: closed by default — a slim docked tab to open it, or the full panel once open.
+          Hidden entirely on a lesson page, which builds its own chat+studio layout inline instead. */}
       {!lessonId && (
-        <div
-          className="hidden sm:flex w-[360px] shrink-0 rounded-[var(--radius-4xl)] border border-[var(--border-secondary)] bg-[var(--card-bg)] shadow-[var(--shadow-sm)] overflow-hidden"
-          style={{ order: -1 }}
-        >
-          <TutorPanelBody lessonId={lessonId} />
+        <div className="hidden sm:flex shrink-0" style={{ order: -1 }}>
+          {desktopOpen ? (
+            <div className="w-[360px] rounded-[var(--radius-4xl)] border border-[var(--border-secondary)] bg-[var(--card-bg)] shadow-[var(--shadow-sm)] overflow-hidden">
+              <TutorPanelBody lessonId={lessonId} onClose={() => setDesktopOpen(false)} />
+            </div>
+          ) : (
+            <button
+              onClick={() => setDesktopOpen(true)}
+              aria-label={t("tutor.toggle")}
+              title={t("tutor.toggle")}
+              className="w-11 rounded-[var(--radius-4xl)] border border-[var(--border-secondary)] bg-[var(--card-bg)] shadow-[var(--shadow-sm)] flex flex-col items-center justify-center gap-2 py-4 text-[var(--ink-faint)] hover:text-[var(--accent)] hover:border-[var(--accent)] transition-colors cursor-pointer"
+            >
+              <ChatBubbleIcon size={20} />
+            </button>
+          )}
         </div>
       )}
 

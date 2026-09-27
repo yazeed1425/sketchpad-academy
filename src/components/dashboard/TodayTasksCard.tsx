@@ -6,7 +6,7 @@ import { XpBar } from "@/components/ui/XpBar";
 import { CheckIcon } from "@/components/ui/icons";
 import type { DailyQuest } from "@/lib/hooks/useGameData";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
-import { formatNumber } from "@/lib/i18n/translations";
+import { formatNumber, type TranslationKey } from "@/lib/i18n/translations";
 import { useRouter } from "next/navigation";
 
 export function TodayTasksCard({ quests, nextLessonHref }: { quests: DailyQuest[]; nextLessonHref: string | null }) {
@@ -51,7 +51,9 @@ export function TodayTasksCard({ quests, nextLessonHref }: { quests: DailyQuest[
                 {q.completed && <CheckIcon size={12} className="text-white" />}
               </span>
               <div className="flex-1 min-w-0">
-                <p className={`text-sm ${q.completed ? "text-[var(--ink-soft)] line-through" : "text-[var(--ink)]"}`}>{q.description}</p>
+                <p className={`text-sm ${q.completed ? "text-[var(--ink-soft)] line-through" : "text-[var(--ink)]"}`}>
+                  {t(`quest.type.${q.type}` as TranslationKey, { target: formatNumber(q.target, locale) })}
+                </p>
                 {!q.completed && <XpBar value={q.progress} max={q.target} height={6} fillColor="var(--gold)" className="mt-1.5" />}
               </div>
               <span className="badge-overdue shrink-0">{t("quest.xpSuffix", { xp: q.xpReward })}</span>

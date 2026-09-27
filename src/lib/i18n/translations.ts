@@ -165,6 +165,10 @@ const en = {
   "profile.leaderboardAnonymousHint": "Other students will see you as an anonymous learner. You'll still see your own name and rank.",
 
   "quest.xpSuffix": "+{xp} XP",
+  "quest.type.COMPLETE_LESSONS": "Complete {target} lessons today",
+  "quest.type.EARN_XP": "Earn {target} XP today",
+  "quest.type.PERFECT_QUIZ": "Get a perfect score on {target} quiz",
+  "quest.type.PRACTICE_SESSION": "Finish {target} practice session",
 
   "dashboard.takePlacementTitle": "Not sure where to start?",
   "dashboard.takePlacementBody": "Take a short adaptive placement test and we'll set up your skill tree at exactly the right level.",
@@ -456,6 +460,10 @@ const ar: Record<TranslationKey, string> = {
   "profile.leaderboardAnonymousHint": "سيراك الطلاب الآخرون كمتعلم مجهول. ستستمر برؤية اسمك وترتيبك الحقيقيين.",
 
   "quest.xpSuffix": "+{xp} نقطة خبرة",
+  "quest.type.COMPLETE_LESSONS": "أكمل {target} دروس اليوم",
+  "quest.type.EARN_XP": "اكسب {target} نقطة خبرة اليوم",
+  "quest.type.PERFECT_QUIZ": "احصل على علامة كاملة في {target} اختبار",
+  "quest.type.PRACTICE_SESSION": "أنهِ {target} جلسة تدريب",
 
   "dashboard.takePlacementTitle": "مو متأكد وين تبدأ؟",
   "dashboard.takePlacementBody": "خذ اختبار تحديد مستوى قصير وتكيّفي، وبنجهز لك شجرة المهارات على المستوى المناسب بالضبط.",
