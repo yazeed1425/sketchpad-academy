@@ -16,6 +16,8 @@ export interface ProfileResponse {
   currentStreak: number;
   bestStreak: number;
   calendar: StreakCalendarDay[];
+  leaderboardAnonymous: boolean;
+  weakTopicsMastered: number;
 }
 
 export function useProfile() {

@@ -3,6 +3,8 @@
 import "dotenv/config";
 import { defineConfig } from "prisma/config";
 
+// Note: the CLI (migrate/studio) connects with this datasource URL directly — only the
+// generated Client at runtime needs an explicit driver adapter (see src/lib/db.ts).
 export default defineConfig({
   schema: "prisma/schema.prisma",
   migrations: {

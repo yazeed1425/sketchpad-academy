@@ -5,6 +5,8 @@ import {
   generateDiagnosticQuestion,
   generateMutatedDiagnosticQuestion,
   generateEmbedding,
+  buildDistractorRationaleMap,
+  lookupDistractorRationale,
   SUBSKILL_LABEL_AR,
   type DiagnosticTranscriptEntry,
   type DiagnosticReference,
@@ -130,6 +132,7 @@ async function generateAndStoreQuestion(
       optionsJson: JSON.stringify(generated.options),
       correctAnswer: generated.correctAnswer,
       explanation: generated.explanation,
+      distractorRationaleJson: JSON.stringify(buildDistractorRationaleMap(generated.distractors)),
     },
   });
 }
@@ -274,6 +277,9 @@ export async function submitDiagnosticAnswer(
   const question = await db.diagnosticQuestion.findUniqueOrThrow({ where: { id: questionId } });
   const isCorrect = normalize(answer) === normalize(question.correctAnswer);
   const order = await db.diagnosticResponse.count({ where: { attemptId } });
+  const { explanation, misconceptionTag } = isCorrect
+    ? { explanation: question.explanation, misconceptionTag: null as string | null }
+    : lookupDistractorRationale(question.distractorRationaleJson, answer, question.explanation);
 
   await db.diagnosticResponse.create({
     data: {
@@ -284,12 +290,13 @@ export async function submitDiagnosticAnswer(
       difficulty: question.difficulty,
       userAnswer: answer,
       isCorrect,
+      misconceptionTag,
       timeTakenSec: Math.max(0, Math.round(timeTakenSec)),
     },
   });
 
   return {
-    feedback: { isCorrect, correctAnswer: question.correctAnswer, explanation: question.explanation },
+    feedback: { isCorrect, correctAnswer: question.correctAnswer, explanation },
   };
 }
 

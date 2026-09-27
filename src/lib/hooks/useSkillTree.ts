@@ -21,6 +21,9 @@ export interface TreeSkillNode {
 }
 
 export function useSkillTree(pathId: string) {
-  const { data, mutate, isLoading } = useSWR<{ nodes: TreeSkillNode[] }>(`/api/paths/${pathId}/tree`, apiFetcher);
+  // A falsy key tells SWR to skip fetching entirely — callers pass "" before a path exists
+  // (e.g. a brand-new user with no active path yet), and `/api/paths//tree` isn't a route at all
+  // (it 404s, since the dynamic segment is empty), so there's nothing worth requesting yet.
+  const { data, mutate, isLoading } = useSWR<{ nodes: TreeSkillNode[] }>(pathId ? `/api/paths/${pathId}/tree` : null, apiFetcher);
   return { nodes: data?.nodes ?? [], mutate, isLoading };
 }

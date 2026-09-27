@@ -2,6 +2,7 @@ import "dotenv/config";
 import { PrismaClient } from "../src/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 
+if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is not configured");
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const db = new PrismaClient({ adapter });
 
@@ -27,6 +28,8 @@ const badges = [
   { key: "perfect-5", title: "Sharp Shooter", description: "Score 100% on 5 quizzes.", icon: "thumb", criteria: "PERFECT_QUIZZES" as const, criteriaValue: 5 },
   { key: "promoted-1", title: "Climbing the Ranks", description: "Get promoted out of a league division.", icon: "star", criteria: "LEAGUE_PROMOTIONS" as const, criteriaValue: 1 },
   { key: "path-complete", title: "Path Master", description: "Complete every skill in a learning path.", icon: "badge", criteria: "PATH_COMPLETED" as const, criteriaValue: 1 },
+  { key: "weak-topic-mastered", title: "Turned It Around", description: "Master a skill that started out as a weak spot.", icon: "star", criteria: "WEAK_TOPIC_MASTERED" as const, criteriaValue: 1 },
+  { key: "comeback-1", title: "Comeback Kid", description: "Pass a skill after needing more than one try.", icon: "flame", criteria: "COMEBACK" as const, criteriaValue: 1 },
 ];
 
 async function main() {

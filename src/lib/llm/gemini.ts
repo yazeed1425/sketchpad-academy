@@ -113,14 +113,30 @@ const MATH_FORMATTING_RULE = `قواعد صارمة لكتابة الرموز ا
 يُسمح داخل علامتي $ فقط بالأرقام الهندية والمتغيرات العربية المفردة (مثل س، ص، ع) ورموز العمليات الرياضية وأوامر LaTeX — ممنوع وضع أي كلمة أو جملة عربية كاملة (شرح أو وصف) داخل علامتي $، فقط الرموز والمتغيرات المفردة.
 لا تستخدم LaTeX في مواضيع لغوية بحتة لا تحتاجه.`;
 
+export interface GeneratedDistractor {
+  option: string;
+  // A short label for the misconception/error pattern this wrong option represents (e.g. "sign
+  // error", "confused radius with diameter") — stored as QuestionResponse.misconceptionTag /
+  // DiagnosticResponse.misconceptionTag when a student picks it, for future analytics/badges.
+  misconception: string;
+  // One sentence explaining specifically why THIS option is wrong — shown to a student who
+  // picked it instead of the generic "why the correct answer is right" explanation (Section 3.3
+  // / Appendix D of the gamification research: diagnostic, choice-specific feedback).
+  whyWrong: string;
+}
+
 export interface GeneratedQuestion {
   prompt: string;
   options: string[];
   correctAnswer: string;
   explanation: string;
+  // Rationale for each of the 3 incorrect options — see GeneratedDistractor. Always requested,
+  // but callers (buildDistractorRationaleMap) tolerate a missing/malformed entry per option and
+  // simply fall back to the generic `explanation` for that option.
+  distractors: GeneratedDistractor[];
 }
 
-/** Shared by generateDiagnosticQuestion and generateMutatedDiagnosticQuestion — both use QUESTION_SCHEMA. */
+/** Shared by every generate*Question function — all use QUESTION_SCHEMA. */
 function validateGeneratedQuestion(result: GeneratedQuestion): void {
   if (!result.options.includes(result.correctAnswer)) {
     const trimmedMatch = result.options.find((o) => o.trim() === result.correctAnswer.trim());
@@ -128,6 +144,49 @@ function validateGeneratedQuestion(result: GeneratedQuestion): void {
     result.correctAnswer = trimmedMatch;
   }
   if (result.options.length !== 4) throw new Error("Gemini did not return exactly 4 options");
+
+  // Distractor rationale is a nice-to-have on top of a valid question, not a hard requirement —
+  // drop anything that doesn't cleanly match one of the actual wrong options (by exact or
+  // trimmed text) instead of failing the whole question over it.
+  const wrongOptions = result.options.filter((o) => o !== result.correctAnswer);
+  result.distractors = (result.distractors ?? [])
+    .map((d) => {
+      const match = wrongOptions.find((o) => o === d.option || o.trim() === d.option.trim());
+      return match ? { ...d, option: match } : null;
+    })
+    .filter((d): d is GeneratedDistractor => d !== null);
+}
+
+/** Builds a {optionText: {misconception, whyWrong}} lookup for persisting as *.distractorRationaleJson, for O(1) lookup at answer time. */
+export function buildDistractorRationaleMap(distractors: GeneratedDistractor[]): Record<string, { misconception: string; whyWrong: string }> {
+  const map: Record<string, { misconception: string; whyWrong: string }> = {};
+  for (const d of distractors) map[d.option] = { misconception: d.misconception, whyWrong: d.whyWrong };
+  return map;
+}
+
+/**
+ * Looks up the stored rationale for a specific chosen wrong option out of a persisted
+ * *.distractorRationaleJson column, returning both the misconception tag to persist on the
+ * response and a choice-specific explanation. Falls back to the question's generic explanation
+ * when there's no rationale for this exact option (a question generated before Phase 3, a
+ * FILL_BLANK question, or an option Gemini's distractor list didn't cover) — used by
+ * quizService.submitAnswer, diagnosticService.submitDiagnosticAnswer, and
+ * customDiagnosticService.submitCustomDiagnosticAnswer alike.
+ */
+export function lookupDistractorRationale(
+  distractorRationaleJson: string | null,
+  chosenAnswer: string,
+  fallbackExplanation: string
+): { explanation: string; misconceptionTag: string | null } {
+  if (!distractorRationaleJson) return { explanation: fallbackExplanation, misconceptionTag: null };
+  try {
+    const map = JSON.parse(distractorRationaleJson) as Record<string, { misconception: string; whyWrong: string }>;
+    const entry = map[chosenAnswer];
+    if (!entry) return { explanation: fallbackExplanation, misconceptionTag: null };
+    return { explanation: entry.whyWrong, misconceptionTag: entry.misconception };
+  } catch {
+    return { explanation: fallbackExplanation, misconceptionTag: null };
+  }
 }
 
 const QUESTION_SCHEMA = {
@@ -137,9 +196,29 @@ const QUESTION_SCHEMA = {
     options: { type: "ARRAY", items: { type: "STRING" }, minItems: 4, maxItems: 4 },
     correctAnswer: { type: "STRING" },
     explanation: { type: "STRING" },
+    distractors: {
+      type: "ARRAY",
+      items: {
+        type: "OBJECT",
+        properties: {
+          option: { type: "STRING" },
+          misconception: { type: "STRING" },
+          whyWrong: { type: "STRING" },
+        },
+        required: ["option", "misconception", "whyWrong"],
+      },
+      minItems: 3,
+      maxItems: 3,
+    },
   },
-  required: ["prompt", "options", "correctAnswer", "explanation"],
+  required: ["prompt", "options", "correctAnswer", "explanation", "distractors"],
 };
+
+const DISTRACTOR_RULE = `لكل واحد من الخيارات الثلاثة الخاطئة (غير correctAnswer)، أضف كائناً في distractors يحدد:
+- option: نص الخيار الخاطئ حرفياً كما يظهر في options.
+- misconception: تصنيف قصير جداً (2-4 كلمات) للخطأ المفاهيمي أو الحسابي الذي يقود لاختيار هذا الخيار تحديداً (مثال: "خطأ في الإشارة"، "الخلط بين نصف القطر والقطر"، "نسيان ترتيب العمليات").
+- whyWrong: جملة واحدة تشرح تحديداً لماذا هذا الخيار بالذات خاطئ (ما الخطأ الذي يقود له)، لا لماذا الإجابة الصحيحة صحيحة.
+اجعل كل خيار خاطئ ينتج فعلياً عن خطأ منطقي أو حسابي واقعي وشائع عند الطلاب في هذا الموضوع تحديداً، وليس رقماً عشوائياً — كل مشتت (distractor) يجب أن يقابل مساراً حسابياً فعلياً يوصل لذلك الرقم لو أخطأ الطالب بالطريقة الموصوفة.`;
 
 /** Generates one fresh multiple-choice question for a sub-skill/difficulty, in Arabic. */
 export async function generateDiagnosticQuestion(params: {
@@ -159,6 +238,7 @@ export async function generateDiagnosticQuestion(params: {
 - correctAnswer يجب أن يطابق نص أحد الخيارات الأربعة حرفياً تماماً (نفس الأحرف والمسافات).
 - السؤال مناسب لطالب ثانوي سعودي يستعد لاختبار القدرات.
 - اجعل الشرح (explanation) جملة أو جملتين توضح سبب صحة الإجابة.
+${DISTRACTOR_RULE}
 ${MATH_FORMATTING_RULE}${avoid}
 أعد النتيجة بصيغة JSON فقط حسب المخطط المطلوب، بدون أي نص إضافي.`;
 
@@ -205,6 +285,7 @@ export async function generateMutatedDiagnosticQuestion(params: {
 - correctAnswer يجب أن يطابق نص أحد الخيارات الأربعة حرفياً تماماً.
 - درجة الصعوبة المطلوبة: "${DIFFICULTY_LABEL_AR[params.difficulty]}" — حافظ عليها في السؤال الجديد.
 - اجعل الشرح (explanation) جملة أو جملتين توضح خطوات حل السؤال الجديد بأرقامه الجديدة.
+${DISTRACTOR_RULE}
 ${MATH_FORMATTING_RULE}${avoid}
 أعد النتيجة بصيغة JSON فقط حسب المخطط المطلوب، بدون أي نص إضافي.`;
 
@@ -220,19 +301,29 @@ export interface QuestionBankReference {
   explanation?: string;
 }
 
-/** Generates one fresh multiple-choice practice question for a lesson's topic — no RAG reference available (or it failed), so nothing to mutate from. */
-export async function generatePracticeQuestion(params: { topic: string; avoidPrompts: string[] }): Promise<GeneratedQuestion> {
+/**
+ * Generates one fresh multiple-choice practice question for a lesson's topic — no RAG reference
+ * available (or it failed), so nothing to mutate from. `difficulty` drives the same EASY/MEDIUM/
+ * HARD ladder as the diagnostic (see src/lib/gamification/adaptive.ts), letting lesson quizzes
+ * and question-bank practice adapt question-to-question instead of staying at one fixed level.
+ */
+export async function generatePracticeQuestion(params: {
+  topic: string;
+  difficulty: $Enums.DiagnosticDifficulty;
+  avoidPrompts: string[];
+}): Promise<GeneratedQuestion> {
   const avoid = params.avoidPrompts.length
     ? `\nتجنّب تكرار أو مشابهة هذه الأسئلة السابقة في نفس جلسة التدريب:\n${params.avoidPrompts.map((p) => `- ${p}`).join("\n")}`
     : "";
 
   const prompt = `أنت خبير في تصميم أسئلة اختبار القدرات العامة (GAT) السعودي.
-أنشئ سؤال اختيار من متعدد باللغة العربية الفصحى للتدريب على موضوع "${params.topic}".
+أنشئ سؤال اختيار من متعدد باللغة العربية الفصحى للتدريب على موضوع "${params.topic}"، بمستوى صعوبة "${DIFFICULTY_LABEL_AR[params.difficulty]}".
 المتطلبات:
 - أربعة خيارات فقط، خيار واحد صحيح فقط.
 - correctAnswer يجب أن يطابق نص أحد الخيارات الأربعة حرفياً تماماً.
 - السؤال مناسب لطالب ثانوي سعودي يستعد لاختبار القدرات.
 - اجعل الشرح (explanation) جملة أو جملتين توضح سبب صحة الإجابة.
+${DISTRACTOR_RULE}
 ${MATH_FORMATTING_RULE}${avoid}
 أعد النتيجة بصيغة JSON فقط حسب المخطط المطلوب، بدون أي نص إضافي.`;
 
@@ -249,6 +340,7 @@ ${MATH_FORMATTING_RULE}${avoid}
  */
 export async function generateMutatedPracticeQuestion(params: {
   topic: string;
+  difficulty: $Enums.DiagnosticDifficulty;
   reference: QuestionBankReference;
   avoidPrompts: string[];
 }): Promise<GeneratedQuestion> {
@@ -268,7 +360,9 @@ export async function generateMutatedPracticeQuestion(params: {
 المتطلبات:
 - أربعة خيارات فقط، خيار واحد صحيح فقط، والمشتتات (الخيارات الخاطئة) معقولة وليست واضحة الاستبعاد.
 - correctAnswer يجب أن يطابق نص أحد الخيارات الأربعة حرفياً تماماً.
+- درجة الصعوبة المطلوبة: "${DIFFICULTY_LABEL_AR[params.difficulty]}" — عدّل تعقيد الأرقام والخطوات في السؤال الجديد بما يطابق هذا المستوى (قد يختلف عن صعوبة السؤال المرجعي الأصلي).
 - اجعل الشرح (explanation) جملة أو جملتين توضح خطوات حل السؤال الجديد بأرقامه الجديدة.
+${DISTRACTOR_RULE}
 ${MATH_FORMATTING_RULE}${avoid}
 أعد النتيجة بصيغة JSON فقط حسب المخطط المطلوب، بدون أي نص إضافي.`;
 
@@ -457,6 +551,11 @@ export interface GeneratedRoadmapSkill {
   milestoneTitle: string;
   tier: number;
   alreadyMastered: boolean;
+  // The mastery level (of this skill's underlying diagnostic sub-skill/topic) that alreadyMastered
+  // was itself derived from — persisted on the Skill row (Skill.diagnosedMastery) so
+  // checkAndAwardBadges can later reward mastering a skill that started as GAP/DEVELOPING, not
+  // just alreadyMastered's coarser true/false.
+  mastery: $Enums.MasteryLevel;
   prerequisites: string[];
   lessonTitle: string;
   icon: SkillIconKey;
@@ -508,13 +607,14 @@ const ROADMAP_SCHEMA = {
           milestoneTitle: { type: "STRING" },
           tier: { type: "INTEGER" },
           alreadyMastered: { type: "BOOLEAN" },
+          mastery: { type: "STRING", enum: ["GAP", "DEVELOPING", "MASTERED"] },
           prerequisites: { type: "ARRAY", items: { type: "STRING" } },
           lessonTitle: { type: "STRING" },
           icon: { type: "STRING", enum: [...SKILL_ICON_KEYS] },
           sourceTopicName: { type: "STRING" },
           domainLabel: { type: "STRING" },
         },
-        required: ["key", "title", "description", "milestoneTitle", "tier", "alreadyMastered", "prerequisites", "lessonTitle", "icon"],
+        required: ["key", "title", "description", "milestoneTitle", "tier", "alreadyMastered", "mastery", "prerequisites", "lessonTitle", "icon"],
       },
     },
   },
@@ -526,12 +626,20 @@ export interface RoadmapEvaluationInput {
   overallSummary: string;
 }
 
-/** Drops dangling/self prerequisites and falls back invalid icons. */
+const MASTERY_LEVELS: $Enums.MasteryLevel[] = ["GAP", "DEVELOPING", "MASTERED"];
+
+/** Drops dangling/self prerequisites, falls back invalid icons, and normalizes mastery/alreadyMastered against each other. */
 function sanitizeRoadmap(roadmap: GeneratedRoadmap): void {
   const validKeys = new Set(roadmap.skills.map((s) => s.key));
   for (const skill of roadmap.skills) {
     skill.prerequisites = skill.prerequisites.filter((k) => validKeys.has(k) && k !== skill.key);
     if (!SKILL_ICON_KEYS.includes(skill.icon)) skill.icon = "bulb";
+    if (!MASTERY_LEVELS.includes(skill.mastery)) skill.mastery = "DEVELOPING";
+    // alreadyMastered is the ground truth for auto-completion (generateAndAssignComprehensivePath
+    // acts on it directly) — keep mastery consistent with it rather than trusting two
+    // independently-generated fields to agree.
+    if (skill.alreadyMastered) skill.mastery = "MASTERED";
+    else if (skill.mastery === "MASTERED") skill.mastery = "DEVELOPING";
   }
 }
 
@@ -655,6 +763,7 @@ ${masteryGroupLines}
 المتطلبات:
 - عقدة واحدة مستقلة على الأقل لكل نقطة من القائمة أعلاه (لا تدمج، لا تُسقط) — أي لا يقل إجمالي عدد العقد (skills) عن ${totalTopics}. المواضيع التي تحتاج تدرجاً إضافياً (مثل معادلات الدرجة الأولى والثانية، أو استيعاب المقروء) يمكن أن تنقسم لأكثر من عقدة، فيصل الإجمالي إلى ٢٦-٣٠ عقدة إذا رأيت ذلك مناسباً — لكن لا تقل أبداً عن ${totalTopics}.
 - alreadyMastered يجب أن تكون true فقط للعقد اللي موضوعها مصنّف أعلاه ضمن مهارة صنّفها التقييم كـ"متقن" بالضبط — كل عقدة أخرى (بما فيها كل عقد الاحتمالات، وأي عقدة موضوعها ضمن مهارة "قيد التطور" أو "فجوة مهارية") تكون alreadyMastered = false.
+- لكل عقدة: mastery يجب أن يطابق تصنيف التقييم لمهارتها المقابلة بالضبط: MASTERED إن كانت "متقن" (ويجب أن يطابق alreadyMastered = true حينها)، DEVELOPING إن كانت "قيد التطور"، GAP إن كانت "فجوة مهارية". عقد الاحتمالات (بدون تصنيف) تكون دائماً mastery = GAP.
 - قسّم الخطة إلى أسابيع دراسية متتالية (milestones) بتسلسل تدريجي منطقي من الأسهل للأصعب: ابدأ بأساسيات الحس العددي والمفردات اللغوية، ثم انتقل تدريجياً للمواضيع الأكثر تعقيداً، وانتهِ بأسبوع تطبيقي شامل. كل أسبوع يجب أن يحتوي على 4 إلى 6 عقد فرعية بالضبط (لا نودين فقط) — اضبط عدد الأسابيع تبعاً لذلك (يكون عادةً بين 4 و6 أسابيع بما إن إجمالي العقد لا يقل عن ${totalTopics}). عنوان كل مرحلة (milestoneTitle) يجب أن يبدأ بصيغة "الأسبوع N: " متبوعاً بوصف قصير لموضوعها (مثل "الأسبوع 1: الحس العددي والمفردات الأساسية")، حيث N رقم تسلسلي يبدأ من 1.
 - لكل عقدة: key فريد بالإنجليزية (kebab-case)، عنوان ووصف بالعربية يعكسان تحديداً نقطة واحدة من القائمة أعلاه، milestoneTitle (اسم أحد الأسابيع أعلاه بالضبط)، tier (رقم صف يبدأ من 0 ويعكس ترتيب الأسبوع)، وقائمة prerequisites (مفاتيح عقد أخرى في نفس القائمة يجب إتقانها أولاً — عقد tier 0 غالباً بدون متطلبات سابقة).
 - لكل عقدة: عنوان درس واحد (lessonTitle) يصف تدريباً مكثفاً على أساسيات ذلك الموضوع تحديداً (لا تولّد أسئلة الدرس هنا، فقط عنوانه — الأسئلة تُنشأ لاحقاً عند فتح الدرس فعلياً).
@@ -745,6 +854,7 @@ ${params.excerpt}
 - أربعة خيارات فقط، خيار واحد صحيح فقط، والمشتتات معقولة وليست واضحة الاستبعاد.
 - correctAnswer يجب أن يطابق نص أحد الخيارات الأربعة حرفياً تماماً.
 - اجعل الشرح (explanation) جملة أو جملتين توضح سبب صحة الإجابة بالاستناد للمقتطف.
+${DISTRACTOR_RULE}
 ${MATH_FORMATTING_RULE}${avoid}
 أعد النتيجة بصيغة JSON فقط حسب المخطط المطلوب، بدون أي نص إضافي.`;
 
@@ -852,6 +962,7 @@ ${input.topics.map((t, i) => `${i + 1}. ${t.topic}`).join("\n")}
 المتطلبات:
 - عقدة واحدة مستقلة على الأقل لكل نقطة أعلاه (لا تدمج، لا تُسقط) — أي لا يقل إجمالي عدد العقد (skills) عن ${totalTopics}. المواضيع الواسعة يمكن أن تنقسم لأكثر من عقدة إذا رأيت ذلك مناسباً، لكن لا تقل أبداً عن ${totalTopics}.
 - alreadyMastered يجب أن تكون true فقط للعقد التي موضوعها مصنّف "متقن" أعلاه بالضبط — كل عقدة أخرى (قيد التطور أو فجوة مهارية) تكون alreadyMastered = false.
+- لكل عقدة: mastery يجب أن يطابق تصنيف الموضوع المقابل لها أعلاه بالضبط: MASTERED إن كان "متقن" (ويجب أن يطابق alreadyMastered = true حينها)، DEVELOPING إن كان "قيد التطور"، GAP إن كان "فجوة مهارية".
 - قسّم الخطة إلى أسابيع دراسية متتالية (milestones) بتسلسل تدريجي منطقي من الأسهل للأصعب. كل أسبوع يحتوي على 3 إلى 6 عقد فرعية. عنوان كل مرحلة (milestoneTitle) يجب أن يبدأ بصيغة "الأسبوع N: " متبوعاً بوصف قصير لموضوعها، حيث N رقم تسلسلي يبدأ من 1.
 - لكل عقدة: key فريد بالإنجليزية (kebab-case)، عنوان ووصف بالعربية يعكسان تحديداً نقطة واحدة من القائمة أعلاه، milestoneTitle (اسم أحد الأسابيع أعلاه بالضبط)، tier (رقم صف يبدأ من 0 ويعكس ترتيب الأسبوع)، وقائمة prerequisites (مفاتيح عقد أخرى في نفس القائمة يجب إتقانها أولاً — عقد tier 0 غالباً بدون متطلبات سابقة).
 - لكل عقدة: sourceTopicName يجب أن يطابق بالضبط (نفس الأحرف) اسم إحدى النقاط في القائمة الرقمية أعلاه — هذا إلزامي لكل عقدة بلا استثناء، حتى لو انقسمت نقطة واحدة لعدة عقد (تحمل كلها نفس sourceTopicName).
@@ -865,4 +976,169 @@ ${MATH_FORMATTING_RULE}
   const roadmap = await generateJson<GeneratedRoadmap>(prompt, ROADMAP_SCHEMA);
   sanitizeRoadmap(roadmap);
   return roadmap;
+}
+
+// ───────────────────────── AI Tutor (chat, flashcards, knowledge graph) ─────────────────────────
+// A per-lesson study companion: a grounded Q&A/explanation chat, plus two cache-on-first-open
+// study aids (flashcards, a concept knowledge graph) generated the same way lesson content is
+// (see quizService.ts's getOrGenerateLessonContent) — once per lesson, reused by every student
+// after that.
+
+export interface TutorLessonContext {
+  title: string;
+  description: string;
+  sourceExcerpt?: string; // custom-content skills only, see Skill.sourceExcerpt
+}
+
+function tutorContextBlock(context: TutorLessonContext): string {
+  return context.sourceExcerpt
+    ? `عنوان الدرس: "${context.title}"\nمقتطف مرجعي رفعه الطالب بنفسه، اعتمد عليه حصراً في إجاباتك ولا تخترع معلومات خارجه:\n"""\n${context.sourceExcerpt}\n"""\n`
+    : `عنوان الدرس: "${context.title}"\nوصف الدرس: "${context.description}"\n`;
+}
+
+export interface TutorFlashcard {
+  front: string;
+  back: string;
+}
+
+const FLASHCARD_SCHEMA = {
+  type: "OBJECT",
+  properties: {
+    cards: {
+      type: "ARRAY",
+      items: {
+        type: "OBJECT",
+        properties: { front: { type: "STRING" }, back: { type: "STRING" } },
+        required: ["front", "back"],
+      },
+      minItems: 5,
+      maxItems: 8,
+    },
+  },
+  required: ["cards"],
+};
+
+/** Generates a set of front/back flashcards for a lesson's topic, cached on Lesson.flashcardsJson. */
+export async function generateFlashcards(context: TutorLessonContext): Promise<TutorFlashcard[]> {
+  const prompt = `أنت معلّم خبير تُعِدّ بطاقات تعليمية (Flashcards) لمراجعة سريعة وفعالة.
+${tutorContextBlock(context)}
+أنشئ من 5 إلى 8 بطاقات تغطي أهم النقاط القابلة للمراجعة في هذا الدرس تحديداً — كل بطاقة:
+- front: سؤال قصير جداً أو مصطلح أو مفهوم يستدعي تذكّراً نشطاً (Active Recall)، وليس جملة وصفية.
+- back: الإجابة أو التعريف، جملة أو جملتين موجزتين، بلا حشو.
+نوّع بين الأسئلة المباشرة (تعريف مصطلح) وأسئلة "لماذا/كيف" القصيرة، ورتّبها من الأسهل للأصعب.
+${MATH_FORMATTING_RULE}
+أعد النتيجة بصيغة JSON فقط حسب المخطط المطلوب، بدون أي نص إضافي.`;
+
+  const result = await generateJson<{ cards: TutorFlashcard[] }>(prompt, FLASHCARD_SCHEMA);
+  return result.cards;
+}
+
+export interface TutorGraphNode {
+  id: string;
+  label: string;
+  description: string;
+}
+
+export interface TutorGraphEdge {
+  from: string;
+  to: string;
+  relationship: string;
+}
+
+export interface TutorKnowledgeGraph {
+  nodes: TutorGraphNode[];
+  edges: TutorGraphEdge[];
+}
+
+const KNOWLEDGE_GRAPH_SCHEMA = {
+  type: "OBJECT",
+  properties: {
+    nodes: {
+      type: "ARRAY",
+      items: {
+        type: "OBJECT",
+        properties: {
+          id: { type: "STRING" },
+          label: { type: "STRING" },
+          description: { type: "STRING" },
+        },
+        required: ["id", "label", "description"],
+      },
+      minItems: 4,
+      maxItems: 8,
+    },
+    edges: {
+      type: "ARRAY",
+      items: {
+        type: "OBJECT",
+        properties: {
+          from: { type: "STRING" },
+          to: { type: "STRING" },
+          relationship: { type: "STRING" },
+        },
+        required: ["from", "to", "relationship"],
+      },
+    },
+  },
+  required: ["nodes", "edges"],
+};
+
+/** Drops edges that don't reference two real nodes, so a malformed Gemini response never breaks the graph UI. */
+function sanitizeKnowledgeGraph(graph: TutorKnowledgeGraph): void {
+  const validIds = new Set(graph.nodes.map((n) => n.id));
+  graph.edges = graph.edges.filter((e) => validIds.has(e.from) && validIds.has(e.to) && e.from !== e.to);
+}
+
+/** Generates a small concept map (key ideas + how they relate) for a lesson's topic, cached on Lesson.knowledgeGraphJson. */
+export async function generateKnowledgeGraph(context: TutorLessonContext): Promise<TutorKnowledgeGraph> {
+  const prompt = `أنت خبير تصميم مناهج تبني خريطة معرفية (Knowledge Graph) توضّح للطالب كيف ترتبط مفاهيم هذا الدرس ببعضها.
+${tutorContextBlock(context)}
+حدد من 4 إلى 8 مفاهيم أساسية (nodes) في هذا الدرس تحديداً — لكل مفهوم:
+- id: معرّف فريد بالإنجليزية (kebab-case).
+- label: اسم المفهوم بالعربية، كلمة أو كلمتين.
+- description: جملة واحدة قصيرة تشرح المفهوم.
+ثم حدد العلاقات (edges) بين هذه المفاهيم — كل علاقة: from وto (معرّفا مفهومين من القائمة أعلاه)، وrelationship: كلمة أو كلمتين تصف نوع العلاقة (مثل "يُستخدم في"، "شرط لـ"، "نقيض"، "مثال على"). لا تربط كل شيء بكل شيء — فقط العلاقات المفاهيمية الحقيقية والمفيدة للفهم.
+${MATH_FORMATTING_RULE}
+أعد النتيجة بصيغة JSON فقط حسب المخطط المطلوب، بدون أي نص إضافي.`;
+
+  const graph = await generateJson<TutorKnowledgeGraph>(prompt, KNOWLEDGE_GRAPH_SCHEMA);
+  sanitizeKnowledgeGraph(graph);
+  return graph;
+}
+
+export interface TutorChatMessage {
+  role: "user" | "tutor";
+  text: string;
+}
+
+const TUTOR_ANSWER_SCHEMA = {
+  type: "OBJECT",
+  properties: { answer: { type: "STRING" } },
+  required: ["answer"],
+};
+
+/**
+ * Answers a student's question (or "explain this again") grounded in the current lesson's
+ * content, with the prior turns of the conversation for context. Stateless on the server — the
+ * caller (tutorService.ts) resends the running history each turn rather than persisting it.
+ */
+export async function askTutor(
+  context: TutorLessonContext,
+  history: TutorChatMessage[],
+  question: string
+): Promise<string> {
+  const historyBlock = history.length
+    ? `\nمحادثتكما حتى الآن:\n${history.map((m) => `${m.role === "user" ? "الطالب" : "المعلّم"}: ${m.text}`).join("\n")}\n`
+    : "";
+
+  const prompt = `أنت معلّم قدرات خصوصي صبور وودود، تساعد طالباً ثانوياً يراجع الدرس التالي وتجيب على أسئلته وتشرح له أي نقطة يطلبها بأسلوب مبسّط ومباشر.
+${tutorContextBlock(context)}${historyBlock}
+سؤال الطالب الآن: "${question}"
+
+أجب بإجابة مباشرة ومفيدة (2-5 جمل عادة، أطول فقط إذا احتاج الشرح ذلك)، مبنية حصراً على محتوى الدرس أعلاه، بأسلوب معلّم يشرح لطالب لا كموسوعة. إن سأل سؤالاً خارج نطاق الدرس تماماً، وضّح ذلك بلطف ووجّهه لمحتوى الدرس.
+${MATH_FORMATTING_RULE}
+أعد إجابتك بصيغة JSON فقط حسب المخطط المطلوب، بدون أي نص إضافي.`;
+
+  const result = await generateJson<{ answer: string }>(prompt, TUTOR_ANSWER_SCHEMA);
+  return result.answer;
 }

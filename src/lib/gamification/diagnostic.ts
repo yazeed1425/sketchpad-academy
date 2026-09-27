@@ -1,6 +1,8 @@
-// Pure CAT (computerized adaptive testing) rules for the placement diagnostic —
-// no DB access here, see services/diagnosticService.ts for orchestration.
+// CAT (computerized adaptive testing) rules for the placement diagnostic, layered over the
+// shared ladder/resolution primitives in adaptive.ts — no DB access here, see
+// services/diagnosticService.ts for orchestration.
 import type { $Enums } from "@/generated/prisma/client";
+import { nextDifficulty as sharedNextDifficulty, isResolved, type AdaptiveResponseSummary } from "@/lib/gamification/adaptive";
 
 type SubSkill = $Enums.DiagnosticSubSkill;
 type Difficulty = $Enums.DiagnosticDifficulty;
@@ -36,13 +38,8 @@ export interface DiagnosticResponseSummary {
   isCorrect: boolean;
 }
 
-const DIFFICULTY_LADDER: Difficulty[] = ["EASY", "MEDIUM", "HARD"];
-
-export function nextDifficulty(previousDifficulty: Difficulty, previousWasCorrect: boolean): Difficulty {
-  const level = DIFFICULTY_LADDER.indexOf(previousDifficulty);
-  const nextLevel = Math.min(DIFFICULTY_LADDER.length - 1, Math.max(0, level + (previousWasCorrect ? 1 : -1)));
-  return DIFFICULTY_LADDER[nextLevel];
-}
+// Re-exported for existing callers (diagnosticService.ts) — now just the shared ladder step.
+export const nextDifficulty = sharedNextDifficulty;
 
 /**
  * A sub-skill stops early once its last two responses are both HARD+correct (pinned at the
@@ -52,13 +49,8 @@ export function nextDifficulty(previousDifficulty: Difficulty, previousWasCorrec
  * mixed/oscillating performance runs the full MAX_QUESTIONS_PER_SUBSKILL.
  */
 function subSkillIsResolved(responses: DiagnosticResponseSummary[]): boolean {
-  if (responses.length < MIN_QUESTIONS_PER_SUBSKILL) return false;
-  if (responses.length >= MAX_QUESTIONS_PER_SUBSKILL) return true;
-
-  const lastTwo = responses.slice(-2);
-  const allHardCorrect = lastTwo.every((r) => r.difficulty === "HARD" && r.isCorrect);
-  const allEasyWrong = lastTwo.every((r) => r.difficulty === "EASY" && !r.isCorrect);
-  return allHardCorrect || allEasyWrong;
+  const bounds = { minQuestions: MIN_QUESTIONS_PER_SUBSKILL, maxQuestions: MAX_QUESTIONS_PER_SUBSKILL };
+  return isResolved(responses as AdaptiveResponseSummary[], bounds);
 }
 
 /**

@@ -379,6 +379,40 @@ export function CircleIcon({ className = "", size = 8, filled = true }: IconProp
   );
 }
 
+export function ChatBubbleIcon({ className = "", size = 20 }: IconProps) {
+  return (
+    <svg {...base(size)} className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path
+        d="M4 6.5c0-1.1.9-2 2-2h12c1.1 0 2 .9 2 2v8c0 1.1-.9 2-2 2H9l-4 3.5V16.5H6c-1.1 0-2-.9-2-2v-8Z"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+export function CardsIcon({ className = "", size = 20 }: IconProps) {
+  return (
+    <svg {...base(size)} className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="6" y="5" width="13" height="15" rx="2" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M3.5 8 5 5.3c.3-.6 1-.8 1.6-.5l2 1" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M9.5 10.5h6M9.5 14h4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function NetworkIcon({ className = "", size = 20 }: IconProps) {
+  return (
+    <svg {...base(size)} className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="12" cy="5.5" r="2.2" stroke="currentColor" strokeWidth="1.5" />
+      <circle cx="5.5" cy="17" r="2.2" stroke="currentColor" strokeWidth="1.5" />
+      <circle cx="18.5" cy="17" r="2.2" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M10.6 7.2 7 15M13.4 7.2 17 15M7.7 17h8.6" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 const ICONS: Record<string, (props: IconProps) => React.ReactElement> = {
   heart: HeartIcon,
   lightbulb: LightbulbIcon,

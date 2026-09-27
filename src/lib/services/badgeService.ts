@@ -2,12 +2,14 @@ import { db } from "@/lib/db";
 import { meetsBadgeCriteria, type BadgeCriteriaKind } from "@/lib/gamification/badges";
 
 async function buildStatsSnapshot(userId: string) {
-  const [profile, skillsCompleted, leaguePromotions, perfectQuizzes, enrollments] = await Promise.all([
+  const [profile, skillsCompleted, leaguePromotions, perfectQuizzes, enrollments, weakTopicsMastered, completedSkillIds] = await Promise.all([
     db.profile.findUniqueOrThrow({ where: { userId } }),
     db.userSkillProgress.count({ where: { userId, status: "COMPLETED" } }),
     db.leagueMembership.count({ where: { userId, result: "PROMOTED" } }),
     db.quizAttempt.count({ where: { userId, scorePct: 100 } }),
     db.pathEnrollment.findMany({ where: { userId }, select: { pathId: true } }),
+    db.userSkillProgress.count({ where: { userId, status: "COMPLETED", skill: { diagnosedMastery: { in: ["GAP", "DEVELOPING"] } } } }),
+    db.userSkillProgress.findMany({ where: { userId, status: "COMPLETED" }, select: { skillId: true } }),
   ]);
 
   let pathsCompleted = 0;
@@ -19,6 +21,15 @@ async function buildStatsSnapshot(userId: string) {
     if (total > 0 && total === completed) pathsCompleted++;
   }
 
+  // A "comeback" skill needed more than one real (non-practice) attempt on its lesson before
+  // being completed — rewards persistence/improvement, not just first-try success.
+  const attemptCounts = await Promise.all(
+    completedSkillIds.map(({ skillId }) =>
+      db.quizAttempt.count({ where: { userId, isPractice: false, completedAt: { not: null }, lesson: { skillId } } })
+    )
+  );
+  const comebacks = attemptCounts.filter((count) => count >= 2).length;
+
   return {
     bestStreak: profile.bestStreak,
     skillsCompleted,
@@ -26,6 +37,8 @@ async function buildStatsSnapshot(userId: string) {
     leaguePromotions,
     perfectQuizzes,
     pathsCompleted,
+    weakTopicsMastered,
+    comebacks,
   };
 }
 
