@@ -8,6 +8,7 @@ import { HeartBrokenIcon, BookIcon, ChevronLeftIcon, FileTextIcon } from "@/comp
 import { AdaptiveQuizRunner, type AdaptiveQuizQuestion, type AdaptiveProgress } from "@/components/quiz/AdaptiveQuizRunner";
 import { LessonSummary, type LessonCompleteResult } from "@/components/quiz/LessonSummary";
 import { LessonContentCards, type LessonContent } from "@/components/quiz/LessonContentCard";
+import { TutorPanel } from "@/components/tutor/TutorPanel";
 import { apiPost, ApiError } from "@/lib/hooks/useApi";
 import { useProfile } from "@/lib/hooks/useProfile";
 import { useTranslation } from "@/lib/i18n/LocaleProvider";
@@ -202,6 +203,8 @@ export default function LessonPage({ params }: { params: Promise<{ lessonId: str
           </div>
         </div>
       )}
+
+      <TutorPanel lessonId={lessonId} />
     </div>
   );
 }

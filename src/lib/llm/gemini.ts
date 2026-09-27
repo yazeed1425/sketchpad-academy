@@ -977,3 +977,168 @@ ${MATH_FORMATTING_RULE}
   sanitizeRoadmap(roadmap);
   return roadmap;
 }
+
+// ───────────────────────── AI Tutor (chat, flashcards, knowledge graph) ─────────────────────────
+// A per-lesson study companion: a grounded Q&A/explanation chat, plus two cache-on-first-open
+// study aids (flashcards, a concept knowledge graph) generated the same way lesson content is
+// (see quizService.ts's getOrGenerateLessonContent) — once per lesson, reused by every student
+// after that.
+
+export interface TutorLessonContext {
+  title: string;
+  description: string;
+  sourceExcerpt?: string; // custom-content skills only, see Skill.sourceExcerpt
+}
+
+function tutorContextBlock(context: TutorLessonContext): string {
+  return context.sourceExcerpt
+    ? `عنوان الدرس: "${context.title}"\nمقتطف مرجعي رفعه الطالب بنفسه، اعتمد عليه حصراً في إجاباتك ولا تخترع معلومات خارجه:\n"""\n${context.sourceExcerpt}\n"""\n`
+    : `عنوان الدرس: "${context.title}"\nوصف الدرس: "${context.description}"\n`;
+}
+
+export interface TutorFlashcard {
+  front: string;
+  back: string;
+}
+
+const FLASHCARD_SCHEMA = {
+  type: "OBJECT",
+  properties: {
+    cards: {
+      type: "ARRAY",
+      items: {
+        type: "OBJECT",
+        properties: { front: { type: "STRING" }, back: { type: "STRING" } },
+        required: ["front", "back"],
+      },
+      minItems: 5,
+      maxItems: 8,
+    },
+  },
+  required: ["cards"],
+};
+
+/** Generates a set of front/back flashcards for a lesson's topic, cached on Lesson.flashcardsJson. */
+export async function generateFlashcards(context: TutorLessonContext): Promise<TutorFlashcard[]> {
+  const prompt = `أنت معلّم خبير تُعِدّ بطاقات تعليمية (Flashcards) لمراجعة سريعة وفعالة.
+${tutorContextBlock(context)}
+أنشئ من 5 إلى 8 بطاقات تغطي أهم النقاط القابلة للمراجعة في هذا الدرس تحديداً — كل بطاقة:
+- front: سؤال قصير جداً أو مصطلح أو مفهوم يستدعي تذكّراً نشطاً (Active Recall)، وليس جملة وصفية.
+- back: الإجابة أو التعريف، جملة أو جملتين موجزتين، بلا حشو.
+نوّع بين الأسئلة المباشرة (تعريف مصطلح) وأسئلة "لماذا/كيف" القصيرة، ورتّبها من الأسهل للأصعب.
+${MATH_FORMATTING_RULE}
+أعد النتيجة بصيغة JSON فقط حسب المخطط المطلوب، بدون أي نص إضافي.`;
+
+  const result = await generateJson<{ cards: TutorFlashcard[] }>(prompt, FLASHCARD_SCHEMA);
+  return result.cards;
+}
+
+export interface TutorGraphNode {
+  id: string;
+  label: string;
+  description: string;
+}
+
+export interface TutorGraphEdge {
+  from: string;
+  to: string;
+  relationship: string;
+}
+
+export interface TutorKnowledgeGraph {
+  nodes: TutorGraphNode[];
+  edges: TutorGraphEdge[];
+}
+
+const KNOWLEDGE_GRAPH_SCHEMA = {
+  type: "OBJECT",
+  properties: {
+    nodes: {
+      type: "ARRAY",
+      items: {
+        type: "OBJECT",
+        properties: {
+          id: { type: "STRING" },
+          label: { type: "STRING" },
+          description: { type: "STRING" },
+        },
+        required: ["id", "label", "description"],
+      },
+      minItems: 4,
+      maxItems: 8,
+    },
+    edges: {
+      type: "ARRAY",
+      items: {
+        type: "OBJECT",
+        properties: {
+          from: { type: "STRING" },
+          to: { type: "STRING" },
+          relationship: { type: "STRING" },
+        },
+        required: ["from", "to", "relationship"],
+      },
+    },
+  },
+  required: ["nodes", "edges"],
+};
+
+/** Drops edges that don't reference two real nodes, so a malformed Gemini response never breaks the graph UI. */
+function sanitizeKnowledgeGraph(graph: TutorKnowledgeGraph): void {
+  const validIds = new Set(graph.nodes.map((n) => n.id));
+  graph.edges = graph.edges.filter((e) => validIds.has(e.from) && validIds.has(e.to) && e.from !== e.to);
+}
+
+/** Generates a small concept map (key ideas + how they relate) for a lesson's topic, cached on Lesson.knowledgeGraphJson. */
+export async function generateKnowledgeGraph(context: TutorLessonContext): Promise<TutorKnowledgeGraph> {
+  const prompt = `أنت خبير تصميم مناهج تبني خريطة معرفية (Knowledge Graph) توضّح للطالب كيف ترتبط مفاهيم هذا الدرس ببعضها.
+${tutorContextBlock(context)}
+حدد من 4 إلى 8 مفاهيم أساسية (nodes) في هذا الدرس تحديداً — لكل مفهوم:
+- id: معرّف فريد بالإنجليزية (kebab-case).
+- label: اسم المفهوم بالعربية، كلمة أو كلمتين.
+- description: جملة واحدة قصيرة تشرح المفهوم.
+ثم حدد العلاقات (edges) بين هذه المفاهيم — كل علاقة: from وto (معرّفا مفهومين من القائمة أعلاه)، وrelationship: كلمة أو كلمتين تصف نوع العلاقة (مثل "يُستخدم في"، "شرط لـ"، "نقيض"، "مثال على"). لا تربط كل شيء بكل شيء — فقط العلاقات المفاهيمية الحقيقية والمفيدة للفهم.
+${MATH_FORMATTING_RULE}
+أعد النتيجة بصيغة JSON فقط حسب المخطط المطلوب، بدون أي نص إضافي.`;
+
+  const graph = await generateJson<TutorKnowledgeGraph>(prompt, KNOWLEDGE_GRAPH_SCHEMA);
+  sanitizeKnowledgeGraph(graph);
+  return graph;
+}
+
+export interface TutorChatMessage {
+  role: "user" | "tutor";
+  text: string;
+}
+
+const TUTOR_ANSWER_SCHEMA = {
+  type: "OBJECT",
+  properties: { answer: { type: "STRING" } },
+  required: ["answer"],
+};
+
+/**
+ * Answers a student's question (or "explain this again") grounded in the current lesson's
+ * content, with the prior turns of the conversation for context. Stateless on the server — the
+ * caller (tutorService.ts) resends the running history each turn rather than persisting it.
+ */
+export async function askTutor(
+  context: TutorLessonContext,
+  history: TutorChatMessage[],
+  question: string
+): Promise<string> {
+  const historyBlock = history.length
+    ? `\nمحادثتكما حتى الآن:\n${history.map((m) => `${m.role === "user" ? "الطالب" : "المعلّم"}: ${m.text}`).join("\n")}\n`
+    : "";
+
+  const prompt = `أنت معلّم قدرات خصوصي صبور وودود، تساعد طالباً ثانوياً يراجع الدرس التالي وتجيب على أسئلته وتشرح له أي نقطة يطلبها بأسلوب مبسّط ومباشر.
+${tutorContextBlock(context)}${historyBlock}
+سؤال الطالب الآن: "${question}"
+
+أجب بإجابة مباشرة ومفيدة (2-5 جمل عادة، أطول فقط إذا احتاج الشرح ذلك)، مبنية حصراً على محتوى الدرس أعلاه، بأسلوب معلّم يشرح لطالب لا كموسوعة. إن سأل سؤالاً خارج نطاق الدرس تماماً، وضّح ذلك بلطف ووجّهه لمحتوى الدرس.
+${MATH_FORMATTING_RULE}
+أعد إجابتك بصيغة JSON فقط حسب المخطط المطلوب، بدون أي نص إضافي.`;
+
+  const result = await generateJson<{ answer: string }>(prompt, TUTOR_ANSWER_SCHEMA);
+  return result.answer;
+}

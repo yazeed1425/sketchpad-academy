@@ -244,6 +244,25 @@ const en = {
   "diagnostic.custom.report.documentLabel": "Based on: {title}",
   "diagnostic.custom.error.generic": "Something went wrong processing your file. Please try again.",
   "diagnostic.custom.error.retry": "Try again",
+
+  "tutor.toggle": "AI Tutor",
+  "tutor.title": "AI Tutor",
+  "tutor.tabChat": "Chat",
+  "tutor.tabFlashcards": "Flashcards",
+  "tutor.tabGraph": "Knowledge Graph",
+  "tutor.chatEmpty": "Ask me anything about this lesson — I can explain a concept again, work through an example, or answer a specific question.",
+  "tutor.chatPlaceholder": "Ask a question...",
+  "tutor.chatSend": "Send",
+  "tutor.chatThinking": "Thinking...",
+  "tutor.flashcardsLoading": "Preparing flashcards...",
+  "tutor.flashcardsEmpty": "No flashcards yet.",
+  "tutor.flashcardTapToFlip": "Tap to flip",
+  "tutor.flashcardProgress": "Card {current} of {total}",
+  "tutor.flashcardPrev": "Previous",
+  "tutor.flashcardNext": "Next",
+  "tutor.graphLoading": "Building the knowledge graph...",
+  "tutor.graphEmpty": "No knowledge graph yet.",
+  "tutor.graphHint": "Tap a concept to see its description.",
 } as const;
 
 export type TranslationKey = keyof typeof en;
@@ -489,6 +508,25 @@ const ar: Record<TranslationKey, string> = {
   "diagnostic.custom.report.documentLabel": "بناءً على: {title}",
   "diagnostic.custom.error.generic": "حدث خطأ أثناء معالجة ملفك. حاول مرة أخرى.",
   "diagnostic.custom.error.retry": "حاول مرة أخرى",
+
+  "tutor.toggle": "المعلّم الذكي",
+  "tutor.title": "المعلّم الذكي",
+  "tutor.tabChat": "محادثة",
+  "tutor.tabFlashcards": "بطاقات تعليمية",
+  "tutor.tabGraph": "خريطة معرفية",
+  "tutor.chatEmpty": "اسألني أي شيء عن هذا الدرس — أستطيع إعادة شرح مفهوم، حل مثال، أو الإجابة على سؤال محدد.",
+  "tutor.chatPlaceholder": "اكتب سؤالك...",
+  "tutor.chatSend": "إرسال",
+  "tutor.chatThinking": "جارٍ التفكير...",
+  "tutor.flashcardsLoading": "جارٍ تجهيز البطاقات التعليمية...",
+  "tutor.flashcardsEmpty": "لا توجد بطاقات بعد.",
+  "tutor.flashcardTapToFlip": "اضغط لقلب البطاقة",
+  "tutor.flashcardProgress": "بطاقة {current} من {total}",
+  "tutor.flashcardPrev": "السابقة",
+  "tutor.flashcardNext": "التالية",
+  "tutor.graphLoading": "جارٍ بناء الخريطة المعرفية...",
+  "tutor.graphEmpty": "لا توجد خريطة معرفية بعد.",
+  "tutor.graphHint": "اضغط على مفهوم لرؤية وصفه.",
 };
 
 export const translations: Record<Locale, Record<TranslationKey, string>> = { en, ar };
