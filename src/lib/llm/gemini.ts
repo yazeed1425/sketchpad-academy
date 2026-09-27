@@ -1142,3 +1142,59 @@ ${MATH_FORMATTING_RULE}
   const result = await generateJson<{ answer: string }>(prompt, TUTOR_ANSWER_SCHEMA);
   return result.answer;
 }
+
+export interface TutorPlanSkillSummary {
+  title: string;
+  status: string; // SkillStatus (LOCKED/UNLOCKED/IN_PROGRESS/COMPLETED)
+  mastery?: string; // MasteryLevel (GAP/DEVELOPING/MASTERED), diagnostic-generated paths only
+}
+
+export interface TutorPlanContext {
+  pathTitle: string;
+  pathDescription: string;
+  level: number;
+  totalXp: number;
+  currentStreak: number;
+  skills: TutorPlanSkillSummary[];
+}
+
+const MASTERY_LABEL_AR: Record<string, string> = { GAP: "فجوة مهارية", DEVELOPING: "قيد التطور", MASTERED: "متقَن" };
+const STATUS_LABEL_AR: Record<string, string> = { LOCKED: "مقفلة", UNLOCKED: "متاحة", IN_PROGRESS: "قيد التقدم", COMPLETED: "مكتملة" };
+
+function planContextBlock(context: TutorPlanContext): string {
+  const completed = context.skills.filter((s) => s.status === "COMPLETED").length;
+  const focusSkills = context.skills.filter((s) => s.mastery === "GAP" || s.mastery === "DEVELOPING").map((s) => s.title);
+  const skillsList = context.skills
+    .map((s) => `- ${s.title} (${STATUS_LABEL_AR[s.status] ?? s.status}${s.mastery ? `، ${MASTERY_LABEL_AR[s.mastery] ?? s.mastery}` : ""})`)
+    .join("\n");
+
+  return `خطة الطالب التعليمية: "${context.pathTitle}" — ${context.pathDescription}
+المستوى ${context.level}، إجمالي الخبرة ${context.totalXp} نقطة، سلسلة أيام متتالية: ${context.currentStreak}.
+أكمل ${completed} من ${context.skills.length} مهارة حتى الآن.
+${focusSkills.length ? `نقاط ضعف يحتاج التركيز عليها حالياً: ${focusSkills.join("، ")}.\n` : ""}قائمة المهارات في خطته بالترتيب:
+${skillsList}`;
+}
+
+/**
+ * Answers a student's question about their overall learning plan/progress — used when the AI
+ * Tutor panel is open outside any specific lesson (dashboard, roadmap, profile, etc.), as opposed
+ * to askTutor's per-lesson content grounding. Can also give a general-level answer about a named
+ * lesson's topic (from its title only, no full content), pointing the student to open it for a
+ * complete explanation with worked examples.
+ */
+export async function askPlanTutor(context: TutorPlanContext, history: TutorChatMessage[], question: string): Promise<string> {
+  const historyBlock = history.length
+    ? `\nمحادثتكما حتى الآن:\n${history.map((m) => `${m.role === "user" ? "الطالب" : "المعلّم"}: ${m.text}`).join("\n")}\n`
+    : "";
+
+  const prompt = `أنت معلّم قدرات خصوصي صبور وودود، ورفيق دراسة الطالب طوال استخدامه للمنصة. تساعده في فهم خطته التعليمية وتقدمه، وتجيب عن أي سؤال عام يخص مهاراته أو مساره أو مفاهيم القدرات عموماً.
+${planContextBlock(context)}${historyBlock}
+سؤال الطالب الآن: "${question}"
+
+أجب بإجابة مباشرة ومفيدة (2-5 جمل عادة)، بأسلوب معلّم يشرح لطالب لا كموسوعة. إذا سأل عن تفاصيل درس معيّن بعمق، أعطه فكرة عامة مفيدة بناءً على عنوان المهارة فقط ثم وجّهه بلطف لفتح ذلك الدرس للحصول على شرح كامل مع أمثلة محلولة.
+${MATH_FORMATTING_RULE}
+أعد إجابتك بصيغة JSON فقط حسب المخطط المطلوب، بدون أي نص إضافي.`;
+
+  const result = await generateJson<{ answer: string }>(prompt, TUTOR_ANSWER_SCHEMA);
+  return result.answer;
+}
