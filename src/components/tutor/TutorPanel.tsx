@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import useSWR, { preload } from "swr";
 import { RoughButton } from "@/components/ui/RoughButton";
 import { MathText } from "@/components/ui/MathText";
-import { ChatBubbleIcon, CardsIcon, NetworkIcon, CrossIcon } from "@/components/ui/icons";
+import { ChatBubbleIcon, CardsIcon, NetworkIcon, CrossIcon, ChevronLeftIcon } from "@/components/ui/icons";
 import { apiFetcher, apiPost } from "@/lib/hooks/useApi";
 import { useTranslation } from "@/lib/i18n/LocaleProvider";
 import type { TranslationKey } from "@/lib/i18n/translations";
@@ -94,8 +94,9 @@ function TabButton({ active, onClick, icon, label }: { active: boolean; onClick:
 
 /** lessonId present → grounded in that lesson's content; absent → grounded in the student's
  * overall learning plan/progress (see askPlanTutorQuestion), so the panel is always useful even
- * outside a lesson page. */
-function ChatTab({ lessonId }: { lessonId?: string }) {
+ * outside a lesson page. Exported for the lesson page's own 3-column studio layout, which embeds
+ * this directly as its right-hand column instead of going through the tabbed TutorPanelBody. */
+export function ChatTab({ lessonId }: { lessonId?: string }) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
@@ -299,6 +300,76 @@ function GraphTab({ lessonId }: { lessonId?: string }) {
   );
 }
 
+function StudioTile({ icon, label, onClick }: { icon: React.ReactNode; label: string; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="w-full flex items-center gap-3 p-3.5 rounded-[var(--radius-2xl)] border border-[var(--border-secondary)] bg-[var(--paper)] hover:border-[var(--accent)] hover:bg-[var(--accent-soft)] transition-colors text-start cursor-pointer"
+    >
+      <IconChip icon={icon} size={40} />
+      <span className="font-display text-sm font-semibold">{label}</span>
+    </button>
+  );
+}
+
+type StudioView = "menu" | "flashcards" | "graph";
+
+/** The lesson page's left-hand column, styled after NotebookLM's Studio panel per the user's
+ * reference: a menu of generation tiles (flashcards, knowledge graph) that open in place within
+ * the same panel, rather than a tabbed layout or a separate modal. */
+export function LessonStudio({ lessonId }: { lessonId: string }) {
+  const [view, setView] = useState<StudioView>("menu");
+  const { t, locale } = useTranslation();
+
+  const viewIcon = view === "graph" ? <NetworkIcon size={18} /> : view === "flashcards" ? <CardsIcon size={18} /> : <ChatBubbleIcon size={18} />;
+  const viewTitle = view === "graph" ? t("tutor.tabGraph") : view === "flashcards" ? t("tutor.tabFlashcards") : t("tutor.studioTitle");
+
+  return (
+    <div dir={locale === "ar" ? "rtl" : "ltr"} className="h-full flex flex-col">
+      <div className="flex items-center gap-2 px-4 py-3.5 border-b border-[var(--border-secondary)] shrink-0">
+        {view !== "menu" && (
+          <button onClick={() => setView("menu")} className="text-[var(--ink-faint)] hover:text-[var(--ink)] p-1 cursor-pointer shrink-0">
+            <ChevronLeftIcon size={18} />
+          </button>
+        )}
+        <h2 className="font-display text-base flex items-center gap-2.5 min-w-0">
+          <IconChip icon={viewIcon} />
+          <span className="truncate">{viewTitle}</span>
+        </h2>
+      </div>
+      <div className="flex-1 overflow-y-auto p-4 min-h-0">
+        {view === "menu" && (
+          <div className="flex flex-col gap-3">
+            <StudioTile icon={<CardsIcon size={20} />} label={t("tutor.tabFlashcards")} onClick={() => setView("flashcards")} />
+            <StudioTile icon={<NetworkIcon size={20} />} label={t("tutor.tabGraph")} onClick={() => setView("graph")} />
+          </div>
+        )}
+        {view === "flashcards" && <FlashcardsTab lessonId={lessonId} />}
+        {view === "graph" && <GraphTab lessonId={lessonId} />}
+      </div>
+    </div>
+  );
+}
+
+/** The lesson page's right-hand column: just the lesson-scoped chat, without the tab bar (the
+ * lesson page's LessonStudio covers flashcards/knowledge graph in its own left column instead). */
+export function LessonChatPanel({ lessonId }: { lessonId: string }) {
+  const { t, locale } = useTranslation();
+  return (
+    <div dir={locale === "ar" ? "rtl" : "ltr"} className="h-full flex flex-col">
+      <div className="flex items-center gap-2.5 px-4 py-3.5 border-b border-[var(--border-secondary)] shrink-0">
+        <h2 className="font-display text-base flex items-center gap-2.5">
+          <IconChip icon={<ChatBubbleIcon size={18} />} />
+          {t("tutor.title")}
+        </h2>
+      </div>
+      <div className="flex-1 overflow-y-auto px-4 pb-4 pt-3 min-h-0">
+        <ChatTab lessonId={lessonId} />
+      </div>
+    </div>
+  );
+}
+
 function TutorPanelBody({ lessonId, onClose }: { lessonId?: string; onClose?: () => void }) {
   const [tab, setTab] = useState<Tab>("chat");
   const { t, locale } = useTranslation();
@@ -337,7 +408,12 @@ function TutorPanelBody({ lessonId, onClose }: { lessonId?: string; onClose?: ()
  * globals.css) so it reads as a native part of the app rather than a bolted-on widget.
  * Picks up the current lesson (if any) straight from the route via useParams, and warms the
  * flashcards/knowledge-graph cache the moment a lesson is opened so both tabs are ready before
- * the student ever clicks them (see the prefetch effect below). */
+ * the student ever clicks them (see the prefetch effect below).
+ *
+ * On the lesson page's own desktop layout (chat right / studio left, see LessonStudio and the
+ * lesson page component), this sidebar would be a redundant second AI panel, so it hides itself
+ * there — the lesson page renders ChatTab/LessonStudio inline instead. On mobile, where the
+ * lesson page falls back to its plain single-column layout, this stays available as usual. */
 export function TutorPanel() {
   const { lessonId } = useParams<{ lessonId?: string }>();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -351,13 +427,16 @@ export function TutorPanel() {
 
   return (
     <>
-      {/* Desktop: always-open sidebar, docked to the physical left */}
-      <div
-        className="hidden sm:flex w-[360px] shrink-0 rounded-[var(--radius-4xl)] border border-[var(--border-secondary)] bg-[var(--card-bg)] shadow-[var(--shadow-sm)] overflow-hidden"
-        style={{ order: -1 }}
-      >
-        <TutorPanelBody lessonId={lessonId} />
-      </div>
+      {/* Desktop: always-open sidebar, docked to the physical left — except on a lesson page,
+          which builds its own chat+studio layout inline instead. */}
+      {!lessonId && (
+        <div
+          className="hidden sm:flex w-[360px] shrink-0 rounded-[var(--radius-4xl)] border border-[var(--border-secondary)] bg-[var(--card-bg)] shadow-[var(--shadow-sm)] overflow-hidden"
+          style={{ order: -1 }}
+        >
+          <TutorPanelBody lessonId={lessonId} />
+        </div>
+      )}
 
       {/* Mobile: floating toggle + full-screen overlay, since a 360px sidebar would eat the whole viewport */}
       <button

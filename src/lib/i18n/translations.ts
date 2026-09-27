@@ -266,6 +266,7 @@ const en = {
 
   "tutor.toggle": "AI Tutor",
   "tutor.title": "AI Tutor",
+  "tutor.studioTitle": "Studio",
   "tutor.tabChat": "Chat",
   "tutor.tabFlashcards": "Cards",
   "tutor.tabGraph": "Map",
@@ -556,6 +557,7 @@ const ar: Record<TranslationKey, string> = {
 
   "tutor.toggle": "المعلّم الذكي",
   "tutor.title": "المعلّم الذكي",
+  "tutor.studioTitle": "الاستوديو",
   "tutor.tabChat": "محادثة",
   "tutor.tabFlashcards": "بطاقات",
   "tutor.tabGraph": "الخريطة",

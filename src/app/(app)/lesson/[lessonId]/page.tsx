@@ -8,6 +8,7 @@ import { HeartBrokenIcon, BookIcon, ChevronLeftIcon, FileTextIcon } from "@/comp
 import { AdaptiveQuizRunner, type AdaptiveQuizQuestion, type AdaptiveProgress } from "@/components/quiz/AdaptiveQuizRunner";
 import { LessonSummary, type LessonCompleteResult } from "@/components/quiz/LessonSummary";
 import { LessonContentCards, type LessonContent } from "@/components/quiz/LessonContentCard";
+import { LessonStudio, LessonChatPanel } from "@/components/tutor/TutorPanel";
 import { apiPost, ApiError } from "@/lib/hooks/useApi";
 import { useProfile } from "@/lib/hooks/useProfile";
 import { useTranslation } from "@/lib/i18n/LocaleProvider";
@@ -109,7 +110,15 @@ export default function LessonPage({ params }: { params: Promise<{ lessonId: str
   const domainLabel = state.data.domainLabel ?? (domain === "verbal" ? t("dashboard.verbal") : t("dashboard.quantitative"));
 
   return (
-    <div className="w-full max-w-5xl mx-auto">
+    // Physical layout pinned regardless of locale (studio always left, chat always right, per the
+    // reference NotebookLM-style studio) — same dir="ltr" trick AppShell uses for its own row, so
+    // the middle column re-applies the real reading direction for its own content below.
+    <div className="w-full flex items-start gap-4" dir="ltr">
+      <div className="hidden lg:flex w-[300px] shrink-0 self-stretch rounded-[var(--radius-4xl)] border border-[var(--border-secondary)] bg-[var(--card-bg)] shadow-[var(--shadow-sm)] overflow-hidden">
+        <LessonStudio lessonId={lessonId} />
+      </div>
+
+      <div className="flex-1 min-w-0 max-w-3xl mx-auto" dir={locale === "ar" ? "rtl" : "ltr"}>
       <div className="flex items-center gap-3 mb-5 flex-wrap">
         <Link href={`/paths/${state.data.pathId}/tree`} className="btn-secondary-gray flex items-center gap-1 text-sm">
           <ChevronLeftIcon size={14} />
@@ -202,6 +211,11 @@ export default function LessonPage({ params }: { params: Promise<{ lessonId: str
           </div>
         </div>
       )}
+      </div>
+
+      <div className="hidden lg:flex w-[340px] shrink-0 self-stretch rounded-[var(--radius-4xl)] border border-[var(--border-secondary)] bg-[var(--card-bg)] shadow-[var(--shadow-sm)] overflow-hidden">
+        <LessonChatPanel lessonId={lessonId} />
+      </div>
     </div>
   );
 }
